@@ -1,0 +1,256 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { useLang } from '@/lib/lang'
+import { supabase, Bike } from '@/lib/supabase'
+import Navbar from '@/components/Navbar'
+import BookingForm from '@/components/BookingForm'
+import Image from 'next/image'
+
+function WechatModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl p-6 flex flex-col items-center gap-3 max-w-xs w-full mx-4"
+        onClick={e => e.stopPropagation()}
+      >
+        <p className="font-semibold text-gray-900">WeChat — 刘德胜</p>
+        <p className="text-xs text-gray-400">Scan to add on WeChat</p>
+        <img src="/wechat-qr.jpg" alt="WeChat QR code" className="w-52 h-52 object-contain rounded-lg" />
+        <button
+          onClick={onClose}
+          className="text-sm text-gray-400 hover:text-gray-700 mt-1"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function BikeSelector({
+  bikes,
+  selectedId,
+  onSelect,
+}: {
+  bikes: Bike[]
+  selectedId: string
+  onSelect: (id: string) => void
+}) {
+  const { t, lang } = useLang()
+
+  const statusStyles = {
+    available: 'bg-green-50 text-green-700',
+    rented: 'bg-red-50 text-red-600',
+    maintenance: 'bg-yellow-50 text-yellow-700',
+  }
+  const statusLabel = {
+    available: t.status_available,
+    rented: t.status_rented,
+    maintenance: t.status_maintenance,
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {bikes.map(bike => {
+        const name = lang === 'en' ? bike.name_en : bike.name_sv
+        const desc = lang === 'en' ? bike.description_en : bike.description_sv
+        const isSelected = bike.id === selectedId
+        const isAvailable = bike.status === 'available'
+
+        return (
+          <div
+            key={bike.id}
+            onClick={() => isAvailable && onSelect(bike.id)}
+            className={`rounded-xl border-2 overflow-hidden transition-all
+              ${isSelected ? 'border-[#0F2D6B] shadow-md' : 'border-gray-100 hover:border-gray-300'}
+              ${isAvailable ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}
+            `}
+          >
+            {/* Photo */}
+            <div className="aspect-[4/3] bg-gray-50 relative">
+              {bike.image_url ? (
+                <Image src={bike.image_url} alt={name} fill className="object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <svg width="64" height="48" viewBox="0 0 64 48" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="36" r="10" stroke="#CBD5E1" strokeWidth="2" fill="none"/>
+                    <circle cx="52" cy="36" r="10" stroke="#CBD5E1" strokeWidth="2" fill="none"/>
+                    <path d="M12 36 L28 12 L52 36" stroke="#CBD5E1" strokeWidth="2" fill="none"/>
+                    <path d="M28 12 L38 24" stroke="#FFD500" strokeWidth="2" strokeLinecap="round"/>
+                    <circle cx="28" cy="10" r="4" fill="#CBD5E1"/>
+                  </svg>
+                </div>
+              )}
+              {isSelected && (
+                <div className="absolute top-2 right-2 bg-[#0F2D6B] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                  ✓
+                </div>
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <h3 className="font-semibold text-gray-900">{name}</h3>
+                <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${statusStyles[bike.status]}`}>
+                  {statusLabel[bike.status]}
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mb-2">
+                {bike.type === 'single_speed' ? t.type_single : bike.type === '3_speed' ? t.type_3speed : t.type_multi}
+              </p>
+              <p className="text-sm text-gray-500 mb-3 line-clamp-2">{desc}</p>
+
+              {/* Prices */}
+              <div className="grid grid-cols-4 gap-1 text-center border-t border-gray-100 pt-3">
+                {[
+                  { label: t.plan_day, price: bike.price_day },
+                  { label: t.plan_week, price: bike.price_week },
+                  { label: t.plan_month, price: bike.price_month },
+                  { label: t.plan_semester, price: bike.price_semester },
+                ].map(p => (
+                  <div key={p.label}>
+                    <p className="text-xs text-gray-400">{p.label}</p>
+                    <p className="text-sm font-semibold text-[#0F2D6B]">{p.price}</p>
+                    <p className="text-xs text-gray-400">SEK</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function Home() {
+  const { t } = useLang()
+  const [bikes, setBikes] = useState<Bike[]>([])
+  const [selectedBikeId, setSelectedBikeId] = useState('')
+  const [showWechat, setShowWechat] = useState(false)
+
+  useEffect(() => {
+    supabase.from('bikes').select('*').order('created_at').then(({ data }) => {
+      if (data && data.length > 0) {
+        setBikes(data)
+        const first = data.find(b => b.status === 'available')
+        if (first) setSelectedBikeId(first.id)
+      }
+    })
+  }, [])
+
+  const faqs = [
+    { q: t.faq_q1, a: t.faq_a1 },
+    { q: t.faq_q2, a: t.faq_a2 },
+    { q: t.faq_q3, a: t.faq_a3 },
+    { q: t.faq_q4, a: t.faq_a4 },
+  ]
+
+  return (
+    <div className="min-h-screen bg-white">
+      <Navbar />
+
+      {/* Hero */}
+      <section className="mx-4 mt-4 mb-12 rounded-2xl bg-[#0F2D6B] text-white px-8 py-16 relative overflow-hidden">
+        <span className="inline-block text-xs border border-yellow-400/40 bg-yellow-400/15 text-yellow-300 rounded-full px-3 py-1 mb-5">
+          {t.hero_badge}
+        </span>
+        <h1 className="text-4xl font-semibold leading-tight mb-4 max-w-md">
+          {t.hero_title}
+        </h1>
+        <p className="text-white/65 text-base max-w-sm mb-3 leading-relaxed">
+          {t.hero_sub}
+        </p>
+        <p className="text-white/45 text-sm max-w-sm mb-8">
+          Pick a bike below, choose your plan, done.
+        </p>
+        <a
+          href="#bikes"
+          className="bg-yellow-400 text-[#0F2D6B] font-semibold px-6 py-3 rounded-lg text-sm hover:bg-yellow-300 transition-colors inline-block"
+        >
+          {t.btn_browse} ↓
+        </a>
+        <svg className="absolute right-0 bottom-0 opacity-10 pointer-events-none" width="280" height="200" viewBox="0 0 260 200" fill="none" aria-hidden="true">
+          <circle cx="60" cy="140" r="52" stroke="white" strokeWidth="3" fill="none"/>
+          <circle cx="200" cy="140" r="52" stroke="white" strokeWidth="3" fill="none"/>
+          <path d="M60 140 L120 60 L200 140" stroke="white" strokeWidth="3" fill="none" strokeLinejoin="round"/>
+          <path d="M120 60 L155 100" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+          <path d="M100 60 L140 60" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+          <circle cx="120" cy="55" r="8" fill="white"/>
+        </svg>
+      </section>
+
+      <div className="max-w-4xl mx-auto px-4">
+
+        {/* Step 1 — Pick a bike */}
+        <section id="bikes" className="mb-10">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="w-6 h-6 rounded-full bg-[#0F2D6B] text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+            <p className="font-semibold text-gray-900">Choose a bike</p>
+          </div>
+          {bikes.length === 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[1, 2].map(i => (
+                <div key={i} className="border border-gray-100 rounded-xl h-72 bg-gray-50 animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <BikeSelector
+              bikes={bikes}
+              selectedId={selectedBikeId}
+              onSelect={id => {
+                setSelectedBikeId(id)
+                document.getElementById('book')?.scrollIntoView({ behavior: 'smooth' })
+              }}
+            />
+          )}
+        </section>
+
+        {/* Step 2 — Book */}
+        <section id="book" className="mb-14">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="w-6 h-6 rounded-full bg-[#0F2D6B] text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
+            <p className="font-semibold text-gray-900">Fill in your details</p>
+          </div>
+          <BookingForm bikes={bikes} preselectedId={selectedBikeId} />
+        </section>
+
+        {/* FAQ */}
+        <section className="mb-14">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-widest mb-4">{t.section_faq}</p>
+          <div className="divide-y divide-gray-100">
+            {faqs.map((f, i) => (
+              <div key={i} className="py-4">
+                <p className="font-medium text-gray-900 mb-1">{f.q}</p>
+                <p className="text-sm text-gray-500 leading-relaxed">{f.a}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="border-t border-gray-100 py-6 text-center text-xs text-gray-400">
+          © 2025 CyklaUpp · Uppsala ·{' '}
+          <button
+            onClick={() => setShowWechat(true)}
+            className="hover:text-gray-700 underline underline-offset-2"
+          >
+            WeChat support
+          </button>{' '}·{' '}
+          <a
+            href="mailto:chenxu.l@outlook.com"
+            className="hover:text-gray-700 underline underline-offset-2"
+          >
+            Email us
+          </a>
+        </footer>
+      </div>
+
+      {showWechat && <WechatModal onClose={() => setShowWechat(false)} />}
+    </div>
+  )
+}
