@@ -5,6 +5,21 @@ import { LangProvider } from '@/lib/lang'
 export const metadata: Metadata = {
   title: 'CyklaUpp — Bike Rental for Uppsala Students',
   description: 'Affordable bike rental for Uppsala University students. Semester and monthly rentals.',
+  openGraph: {
+    title: 'CyklaUpp — Bike Rental for Uppsala Students',
+    description: 'Monthly or semester rental — easy booking, flexible pickup.',
+    url: 'https://www.cyklaupp.se',
+    siteName: 'CyklaUpp',
+    images: [
+      {
+        url: 'https://www.cyklaupp.se/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'CyklaUpp — Bike Rental for Uppsala Students',
+      },
+    ],
+    type: 'website',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
