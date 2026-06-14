@@ -4,7 +4,10 @@ import { LangProvider } from '@/lib/lang'
 
 export const metadata: Metadata = {
   title: 'CyklaUpp — Bike Rental for Uppsala Students',
-  description: 'Affordable bike rental for Uppsala University students. Semester, monthly, weekly and daily rentals.',
+  description: 'Affordable bike rental for Uppsala University students. Semester and monthly rentals.',
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
