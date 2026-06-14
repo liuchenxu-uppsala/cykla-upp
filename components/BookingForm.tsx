@@ -254,6 +254,7 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
           <label className="text-xs font-medium text-gray-500">{t.form_date}</label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
             min={new Date().toISOString().split('T')[0]}
+            lang="en"
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]" />
         </div>
 
