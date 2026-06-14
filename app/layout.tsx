@@ -26,8 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="32x32" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico?v=2" sizes="32x32" type="image/x-icon" />
+        <link rel="shortcut icon" href="/favicon.ico?v=2" type="image/x-icon" />
+        <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
       </head>
       <body style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
         <LangProvider>
