@@ -7,7 +7,13 @@ const ADMIN_PASS = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123'
 
 const emptyBike = {
   name_en: '', name_sv: '', description_en: '', description_sv: '',
-  type: 'single_speed', price_day: 50, price_week: 280, price_month: 500, price_semester: 900,
+  type: 'single_speed', price_day: 50, price_week: 280, price_month: 150, price_semester: 500,
+}
+
+function generateBikeNumber(existingNumbers: string[]): string {
+  let num = 611 + existingNumbers.length
+  while (existingNumbers.includes(`CY-${num}`)) num++
+  return `CY-${num}`
 }
 
 type BookingWithBike = Booking & { bike?: Bike }
@@ -30,12 +36,7 @@ function BikeFormFields({ data, onChange }: { data: typeof emptyBike, onChange: 
       <input placeholder="Name (SV)" value={data.name_sv} onChange={e => onChange({...data, name_sv: e.target.value})} className={inputCls} />
       <input placeholder="Description (EN)" value={data.description_en} onChange={e => onChange({...data, description_en: e.target.value})} className={inputCls} />
       <input placeholder="Description (SV)" value={data.description_sv} onChange={e => onChange({...data, description_sv: e.target.value})} className={inputCls} />
-      <select value={data.type} onChange={e => onChange({...data, type: e.target.value})}
-        className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0F2D6B]">
-        <option value="single_speed">Single speed（单速）</option>
-        <option value="3_speed">3-speed（3速）</option>
-        <option value="multi_speed">6/7-speed（多速）</option>
-      </select>
+
       <div className="grid grid-cols-4 gap-2">
         {(['price_day','price_week','price_month','price_semester'] as const).map(f => (
           <div key={f} className="flex flex-col gap-1">
@@ -167,7 +168,9 @@ export default function AdminPage() {
   async function addBike() {
     if (!newBike.name_en) return
     setAdding(true)
-    await supabase.from('bikes').insert({ ...newBike, status: 'available' })
+    const existingNumbers = bikes.map(b => b.bike_number).filter(Boolean) as string[]
+    const bikeNumber = generateBikeNumber(existingNumbers)
+    await supabase.from('bikes').insert({ ...newBike, status: 'available', bike_number: bikeNumber })
     setNewBike({ ...emptyBike })
     fetchBikes()
     setAdding(false)
@@ -334,10 +337,14 @@ export default function AdminPage() {
                       }
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900">{bike.name_en}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900">{bike.name_en}</p>
+                        {bike.bike_number && (
+                          <span className="text-xs font-mono bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{bike.bike_number}</span>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-400">
-                        {bike.type === 'single_speed' ? 'Single speed' : bike.type === '3_speed' ? '3-speed' : '6/7-speed'}
-                        {' · '}{bike.price_day}/{bike.price_week}/{bike.price_month}/{bike.price_semester} SEK
+                        {bike.price_month} SEK/month · {bike.price_semester} SEK/semester
                       </p>
                     </div>
                     <select value={bike.status} onChange={e => updateBikeStatus(bike.id, e.target.value as Bike['status'])}
@@ -430,9 +437,9 @@ export default function AdminPage() {
                           <div>
                             <p className="text-xs text-gray-400 mb-1">Bike</p>
                             <p className="font-medium">{b.bike?.name_en || '—'}</p>
-                            <p className="text-xs text-gray-400">
-                              {b.bike?.type === 'single_speed' ? 'Single speed' : b.bike?.type === '3_speed' ? '3-speed' : '6/7-speed'}
-                            </p>
+                            {b.bike?.bike_number && (
+                              <span className="text-xs font-mono bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{b.bike.bike_number}</span>
+                            )}
                           </div>
                           <div>
                             <p className="text-xs text-gray-400 mb-1">Plan & Date</p>

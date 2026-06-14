@@ -30,6 +30,44 @@ function WechatModal({ onClose }: { onClose: () => void }) {
   )
 }
 
+function FloatingContact({ onWechat }: { onWechat: () => void }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
+      {open && (
+        <div className="flex flex-col items-end gap-2 mb-1">
+          <a
+            href="https://wa.me/8801759113956"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 bg-white border border-gray-100 shadow-lg rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <span>💬</span> WhatsApp
+          </a>
+          <button
+            onClick={() => { onWechat(); setOpen(false) }}
+            className="flex items-center gap-2 bg-white border border-gray-100 shadow-lg rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <span>🔴</span> WeChat
+          </button>
+          <a
+            href="mailto:chenxu.l@outlook.com"
+            className="flex items-center gap-2 bg-white border border-gray-100 shadow-lg rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <span>✉️</span> Email
+          </a>
+        </div>
+      )}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-14 h-14 bg-[#0F2D6B] text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-[#1a3f8f] transition-colors"
+      >
+        {open ? '✕' : '💬'}
+      </button>
+    </div>
+  )
+}
+
 function BikeSelector({
   bikes,
   selectedId,
@@ -99,26 +137,10 @@ function BikeSelector({
                   {statusLabel[bike.status]}
                 </span>
               </div>
-              <p className="text-xs text-gray-400 mb-2">
-                {bike.type === 'single_speed' ? t.type_single : bike.type === '3_speed' ? t.type_3speed : t.type_multi}
-              </p>
+
               <p className="text-sm text-gray-500 mb-3 line-clamp-2">{desc}</p>
 
-              {/* Prices */}
-              <div className="grid grid-cols-4 gap-1 text-center border-t border-gray-100 pt-3">
-                {[
-                  { label: t.plan_day, price: bike.price_day },
-                  { label: t.plan_week, price: bike.price_week },
-                  { label: t.plan_month, price: bike.price_month },
-                  { label: t.plan_semester, price: bike.price_semester },
-                ].map(p => (
-                  <div key={p.label}>
-                    <p className="text-xs text-gray-400">{p.label}</p>
-                    <p className="text-sm font-semibold text-[#0F2D6B]">{p.price}</p>
-                    <p className="text-xs text-gray-400">SEK</p>
-                  </div>
-                ))}
-              </div>
+
             </div>
           </div>
         )
@@ -190,7 +212,7 @@ export default function Home() {
         <section id="bikes" className="mb-10">
           <div className="flex items-center gap-3 mb-5">
             <span className="w-6 h-6 rounded-full bg-[#0F2D6B] text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
-            <p className="font-semibold text-gray-900">Choose a bike</p>
+            <p className="font-semibold text-gray-900">{t.step_choose}</p>
           </div>
           {bikes.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -214,7 +236,7 @@ export default function Home() {
         <section id="book" className="mb-14">
           <div className="flex items-center gap-3 mb-5">
             <span className="w-6 h-6 rounded-full bg-[#0F2D6B] text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
-            <p className="font-semibold text-gray-900">Fill in your details</p>
+            <p className="font-semibold text-gray-900">{t.step_details}</p>
           </div>
           <BookingForm bikes={bikes} preselectedId={selectedBikeId} />
         </section>
@@ -234,23 +256,12 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="border-t border-gray-100 py-6 text-center text-xs text-gray-400">
-          © 2025 CyklaUpp · Uppsala ·{' '}
-          <button
-            onClick={() => setShowWechat(true)}
-            className="hover:text-gray-700 underline underline-offset-2"
-          >
-            WeChat support
-          </button>{' '}·{' '}
-          <a
-            href="mailto:chenxu.l@outlook.com"
-            className="hover:text-gray-700 underline underline-offset-2"
-          >
-            Email us
-          </a>
+          © 2025 CyklaUpp · Uppsala · chenxu.l@outlook.com
         </footer>
       </div>
 
       {showWechat && <WechatModal onClose={() => setShowWechat(false)} />}
+      <FloatingContact onWechat={() => setShowWechat(true)} />
     </div>
   )
 }

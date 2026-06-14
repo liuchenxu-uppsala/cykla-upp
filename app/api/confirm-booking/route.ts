@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
 
   // 发确认邮件给用户
   const bikeName = booking.bike?.name_en || 'your bike'
+  const bikeNumber = booking.bike?.bike_number || ''
   const planLabel = planLabels[booking.plan] || booking.plan
   const locationLabel = locationLabels[booking.pickup_location] || booking.pickup_location
 
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
         <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 24px;">
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px 0; color: #888;">Bike</td>
-            <td style="padding: 10px 0; font-weight: 500;">${bikeName}</td>
+            <td style="padding: 10px 0; font-weight: 500;">${bikeName}${bikeNumber ? ` <span style="font-family: monospace; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 12px;">${bikeNumber}</span>` : ''}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px 0; color: #888;">Plan</td>

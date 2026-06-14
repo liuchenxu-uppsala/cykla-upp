@@ -18,6 +18,7 @@ export type Bike = {
   price_semester: number
   status: 'available' | 'rented' | 'maintenance'
   image_url: string | null
+  bike_number: string | null
   created_at: string
 }
 

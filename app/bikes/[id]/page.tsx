@@ -82,8 +82,6 @@ export default function BikeDetail() {
 
             <div className="grid grid-cols-2 gap-3 mb-8">
               {[
-                { label: t.plan_day, price: bike.price_day },
-                { label: t.plan_week, price: bike.price_week },
                 { label: t.plan_month, price: bike.price_month },
                 { label: t.plan_semester, price: bike.price_semester },
               ].map(p => (

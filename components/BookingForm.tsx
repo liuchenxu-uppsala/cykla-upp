@@ -48,8 +48,6 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
   const planOptions = selectedBike ? [
     { value: 'semester', label: t.plan_semester, price: selectedBike.price_semester },
     { value: 'month',    label: t.plan_month,   price: selectedBike.price_month },
-    { value: 'week',     label: t.plan_week,    price: selectedBike.price_week },
-    { value: 'day',      label: t.plan_day,     price: selectedBike.price_day },
   ] : []
 
   const locationOptions = [
@@ -217,21 +215,23 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
         {/* 租赁方案 */}
         <div className="flex flex-col gap-2 md:col-span-2">
           <label className="text-xs font-medium text-gray-500">{t.form_plan}</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {planOptions.map(o => (
               <button
                 type="button"
                 key={o.value}
                 onClick={() => setPlan(o.value)}
-                className={`rounded-lg border-2 py-3 px-2 text-center transition-all
+                className={`rounded-xl border-2 py-5 px-4 text-center transition-all
                   ${plan === o.value
                     ? 'border-[#0F2D6B] bg-[#0F2D6B] text-white'
                     : 'border-gray-200 hover:border-gray-300 text-gray-700'
                   }`}
               >
-                <p className={`text-xs mb-1 ${plan === o.value ? 'text-white/70' : 'text-gray-400'}`}>{o.label}</p>
-                <p className="text-lg font-semibold">{o.price}</p>
-                <p className={`text-xs ${plan === o.value ? 'text-white/70' : 'text-gray-400'}`}>SEK</p>
+                <p className={`text-sm font-medium mb-2 ${plan === o.value ? 'text-white/80' : 'text-gray-500'}`}>{o.label}</p>
+                <p className="text-3xl font-bold">{o.price} <span className={`text-sm font-normal ${plan === o.value ? 'text-white/70' : 'text-gray-400'}`}>SEK</span></p>
+                <p className={`text-xs mt-1 ${plan === o.value ? 'text-white/60' : 'text-gray-400'}`}>
+                  {o.value === 'semester' ? '5 months' : 'per month'}
+                </p>
               </button>
             ))}
           </div>
@@ -246,7 +246,7 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500">{t.form_email}</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-            placeholder="name@student.uu.se"
+
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]" />
         </div>
 
