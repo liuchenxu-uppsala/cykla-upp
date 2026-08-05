@@ -61,6 +61,8 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
     e.preventDefault()
     if (!name || !email || !date) { setError(t.form_error); return }
     if (!bikeId) { setError('Please select a bike first.'); return }
+    const today = new Date().toISOString().split('T')[0]
+    if (date < today) { setError('Please select today or a future date.'); return }
     setError('')
     setSendingOtp(true)
     const res = await fetch('/api/send-otp', {
@@ -246,7 +248,6 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500">{t.form_email}</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]" />
         </div>
 
