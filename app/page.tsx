@@ -30,41 +30,94 @@ function WechatModal({ onClose }: { onClose: () => void }) {
   )
 }
 
+function WhatsAppModal({ onClose }: { onClose: () => void }) {
+  const { t } = useLang()
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl p-6 flex flex-col gap-4 max-w-xs w-full mx-4"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">💬</span>
+          <p className="font-semibold text-gray-900">{t.wa_title}</p>
+        </div>
+
+        <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600">
+          <p className="font-medium text-gray-800 mb-1">{t.wa_hours_label}</p>
+          <p>{t.wa_hours}</p>
+          <p className="text-xs text-gray-400 mt-1">{t.wa_timezone}</p>
+        </div>
+
+        <p className="text-sm text-gray-500">
+          {t.wa_outside}{' '}
+          <a href="mailto:cyklaupp@outlook.com" className="text-[#0F2D6B] underline">
+            cyklaupp@outlook.com
+          </a>
+        </p>
+
+        <a
+          href="https://wa.me/8801759113956"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full bg-[#25D366] text-white font-semibold py-3 rounded-xl text-center text-sm hover:bg-[#1ebe5d] transition-colors"
+        >
+          {t.wa_open}
+        </a>
+
+        <button
+          onClick={onClose}
+          className="text-sm text-gray-400 hover:text-gray-700 text-center"
+        >
+          {t.wa_close}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function FloatingContact({ onWechat }: { onWechat: () => void }) {
   const [open, setOpen] = useState(false)
+  const [showWhatsApp, setShowWhatsApp] = useState(false)
+
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
-      {open && (
-        <div className="flex flex-col items-end gap-2 mb-1">
-          <a
-            href="https://wa.me/8801759113956"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 bg-white border border-gray-100 shadow-lg rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <span>💬</span> WhatsApp
-          </a>
-          <button
-            onClick={() => { onWechat(); setOpen(false) }}
-            className="flex items-center gap-2 bg-white border border-gray-100 shadow-lg rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <span>🔴</span> WeChat
-          </button>
-          <a
-            href="mailto:chenxu.l@outlook.com"
-            className="flex items-center gap-2 bg-white border border-gray-100 shadow-lg rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <span>✉️</span> Email
-          </a>
-        </div>
-      )}
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-14 h-14 bg-[#0F2D6B] text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-[#1a3f8f] transition-colors"
-      >
-        {open ? '✕' : '💬'}
-      </button>
-    </div>
+    <>
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
+        {open && (
+          <div className="flex flex-col items-end gap-2 mb-1">
+            <button
+              onClick={() => { setShowWhatsApp(true); setOpen(false) }}
+              className="flex items-center gap-2 bg-white border border-gray-100 shadow-lg rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <span>💬</span> WhatsApp
+            </button>
+            <button
+              onClick={() => { onWechat(); setOpen(false) }}
+              className="flex items-center gap-2 bg-white border border-gray-100 shadow-lg rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <span>🔴</span> WeChat
+            </button>
+            <a
+              href="mailto:cyklaupp@outlook.com"
+              className="flex items-center gap-2 bg-white border border-gray-100 shadow-lg rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <span>✉️</span> Email
+            </a>
+          </div>
+        )}
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="w-14 h-14 bg-[#0F2D6B] text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-[#1a3f8f] transition-colors"
+        >
+          {open ? '✕' : '💬'}
+        </button>
+      </div>
+
+      {showWhatsApp && <WhatsAppModal onClose={() => setShowWhatsApp(false)} />}
+    </>
   )
 }
 
@@ -137,10 +190,7 @@ function BikeSelector({
                   {statusLabel[bike.status]}
                 </span>
               </div>
-
               <p className="text-sm text-gray-500 mb-3 line-clamp-2">{desc}</p>
-
-
             </div>
           </div>
         )
@@ -256,7 +306,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="border-t border-gray-100 py-6 text-center text-xs text-gray-400">
-          © 2025 CyklaUpp · Uppsala · chenxu.l@outlook.com
+          © 2025 CyklaUpp · Uppsala · cyklaupp@outlook.com
         </footer>
       </div>
 
