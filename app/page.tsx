@@ -60,7 +60,7 @@ function WhatsAppModal({ onClose }: { onClose: () => void }) {
         </p>
 
         <a
-          href="https://wa.me/8801759113956"
+          href="https://wa.me/46737676784"
           target="_blank"
           rel="noopener noreferrer"
           className="w-full bg-[#25D366] text-white font-semibold py-3 rounded-xl text-center text-sm hover:bg-[#1ebe5d] transition-colors"
