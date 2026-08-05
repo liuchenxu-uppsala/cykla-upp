@@ -14,7 +14,7 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
   const [bikeId, setBikeId] = useState(preselectedId || (bikes[0]?.id ?? ''))
   const [plan, setPlan] = useState('semester')
   const [date, setDate] = useState('')
-  const [location, setLocation] = useState('ekonomikum')
+  const [location, setLocation] = useState('flogsta')
   const [notes, setNotes] = useState('')
 
   // 验证码
@@ -51,6 +51,7 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
   ] : []
 
   const locationOptions = [
+    { value: 'flogsta',    label: t.loc_flogsta },
     { value: 'ekonomikum', label: t.loc_ekonomikum },
     { value: 'angstrom',   label: t.loc_angstrom },
     { value: 'bmc',        label: t.loc_bmc },
