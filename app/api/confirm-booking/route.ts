@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   const locationLabel = locationLabels[booking.pickup_location] || booking.pickup_location
 
   await resend.emails.send({
-    from: 'CyklaUpp <onboarding@resend.dev>',
+    from: 'CyklaUpp <noreply@cyklaupp.se>',
     to: booking.email,
     subject: `Booking confirmed — ${orderId}`,
     html: `

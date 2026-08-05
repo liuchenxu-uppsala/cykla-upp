@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { error: emailError } = await resend.emails.send({
-    from: 'CyklaUpp <onboarding@resend.dev>',
+    from: 'CyklaUpp <noreply@cyklaupp.se>',
     to: email,
     subject: 'Your CyklaUpp verification code',
     html: `
