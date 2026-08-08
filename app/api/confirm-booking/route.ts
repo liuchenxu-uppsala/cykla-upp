@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
 
         <p style="color: #999; font-size: 13px; line-height: 1.6;">
           Please keep this order number — you'll need it when returning the bike.<br/>
-          Questions? WeChat or email us at chenxu.l@outlook.com
+          Questions? WeChat or email us at cyklaupp@outlook.com
         </p>
       </div>
     `,

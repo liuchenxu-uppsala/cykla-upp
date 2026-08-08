@@ -37,17 +37,22 @@ Normal wear and tear is expected and will not result in charges.
 Damage caused by misuse, negligence, or accidents during the rental period will be assessed and repair costs charged to you accordingly.
 You agree to notify us immediately if the bicycle is damaged or involved in an accident.
 
-7. THEFT AND LOSS
+7. LIABILITY DISCLAIMER
+CyklaUpp shall not be held liable for any accidents, injuries, or damages occurring during the rental period. By accepting the bicycle, the customer confirms that they have inspected it and found it to be in satisfactory and safe condition for use.
+
+The customer assumes full responsibility for their own safety while riding, including but not limited to the use of a helmet and appropriate bicycle lighting as required by Swedish law. CyklaUpp accepts no liability for any consequences arising from the customer's failure to comply with applicable traffic regulations or safety requirements.
+
+8. THEFT AND LOSS
 You are responsible for the security of the bicycle during the rental period.
 In the event of theft, you must report it to the police immediately and provide us with a police report.
 You may be held liable for the replacement cost of the bicycle if it is stolen due to negligence (e.g. left unlocked).
 
-8. EARLY RETURN
+9. EARLY RETURN
 Early returns are accepted at any time.
 Your deposit will be returned in full upon return of the bicycle in its original condition.
 The rental fee already paid is non-refundable, regardless of when you return the bicycle.
 
-9. PICKUP AND RETURN LOCATIONS
+10. PICKUP AND RETURN LOCATIONS
 Bicycles can be picked up and returned at the following locations:
 - Flogsta
 - Ekonomikum (Main campus)
@@ -55,7 +60,7 @@ Bicycles can be picked up and returned at the following locations:
 - BMC (Medical campus)
 The pickup/return location is selected at the time of booking.
 
-10. CONTACT
+11. CONTACT
 For questions or support, contact us at:
 Email: cyklaupp@outlook.com
 Support hours: Monday to Friday, 09:30 – 17:30 (Uppsala time)`
@@ -92,17 +97,22 @@ Normalt slitage förväntas och medför inga avgifter.
 Skador orsakade av missbruk, vårdslöshet eller olyckor under hyresperioden bedöms och reparationskostnader debiteras dig i enlighet med detta.
 Du förbinder dig att omedelbart meddela oss om cykeln skadas eller är inblandad i en olycka.
 
-7. STÖLD OCH FÖRLUST
+7. ANSVARSFRISKRIVNING
+CyklaUpp ansvarar inte för olyckor, skador eller personskador som inträffar under hyresperioden. Genom att acceptera cykeln bekräftar kunden att de har inspekterat den och funnit den i tillfredsställande och säkert skick för användning.
+
+Kunden tar fullt ansvar för sin egen säkerhet under cykling, inklusive men inte begränsat till användning av hjälm och lämplig cykelbelysning enligt svensk lag. CyklaUpp accepterar inget ansvar för konsekvenser som uppstår till följd av kundens underlåtenhet att följa tillämpliga trafikregler eller säkerhetskrav.
+
+8. STÖLD OCH FÖRLUST
 Du ansvarar för cykelns säkerhet under hyresperioden.
 Vid stöld måste du omedelbart anmäla det till polisen och förse oss med en polisanmälan.
 Du kan hållas ansvarig för cykelns ersättningskostnad om den stjäls på grund av vårdslöshet (t.ex. lämnad olåst).
 
-8. TIDIG ÅTERLÄMNING
+9. TIDIG ÅTERLÄMNING
 Tidig återlämning accepteras när som helst.
 Din deposition återbetalas i sin helhet vid återlämning av cykeln i originalskick.
 Den redan betalda hyresavgiften återbetalas inte, oavsett när du lämnar tillbaka cykeln.
 
-9. UPPHÄMTNINGS- OCH ÅTERLÄMNINGSPLATSER
+10. UPPHÄMTNINGS- OCH ÅTERLÄMNINGSPLATSER
 Cyklar kan hämtas upp och lämnas tillbaka på följande platser:
 - Flogsta
 - Ekonomikum (Huvudcampus)
@@ -110,7 +120,7 @@ Cyklar kan hämtas upp och lämnas tillbaka på följande platser:
 - BMC (Medicincampus)
 Upphämtnings-/återlämningsplatsen väljs vid bokningstillfället.
 
-10. KONTAKT
+11. KONTAKT
 För frågor eller support, kontakta oss på:
 E-post: cyklaupp@outlook.com
 Supporttider: Måndag till fredag, 09:30 – 17:30 (Uppsalatid)`

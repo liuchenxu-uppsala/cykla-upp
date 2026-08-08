@@ -416,6 +416,9 @@ export default function AdminPage() {
                         {b.order_id && <span className="font-mono mr-2">{b.order_id}</span>}
                         {b.bike?.name_en || 'Unknown'} · {planLabels[b.plan] || b.plan} · {b.pickup_date}
                       </p>
+                      <p className="text-xs text-gray-300 mt-0.5">
+                        Submitted: {new Date(b.created_at).toLocaleString('en-SE', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
                     </div>
                     <span className={"text-xs px-2 py-1 rounded-full font-medium " + (statusBadge[b.status] || '')}>
                       {b.status}
@@ -445,6 +448,10 @@ export default function AdminPage() {
                             <p className="text-xs text-gray-400 mb-1">Plan & Date</p>
                             <p className="font-medium">{planLabels[b.plan] || b.plan}</p>
                             <p className="text-xs text-gray-400">Pickup: {b.pickup_date}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400 mb-1">Submitted</p>
+                            <p className="font-medium text-sm">{new Date(b.created_at).toLocaleString('en-SE', { dateStyle: 'medium', timeStyle: 'short' })}</p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-400 mb-1">Location</p>
