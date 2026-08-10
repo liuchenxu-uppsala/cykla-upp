@@ -16,6 +16,7 @@ const planLabels: Record<string, string> = {
 }
 
 const locationLabels: Record<string, string> = {
+  flogsta: 'Flogsta',
   ekonomikum: 'Ekonomikum (Main campus)',
   angstrom: 'Ångström (Engineering)',
   bmc: 'BMC (Medical campus)',
@@ -61,12 +62,62 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to update booking' }, { status: 500 })
   }
 
-  // 同时把 bike 状态改为 rented
+  // 把 bike 状态改为 rented
   if (booking.bike_id) {
     await supabase.from('bikes').update({ status: 'rented' }).eq('id', booking.bike_id)
   }
 
-  // 发确认邮件给用户
+  // 查找同一辆车其他 pending 的预约，自动取消并发邮件
+  if (booking.bike_id) {
+    const { data: otherBookings } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('bike_id', booking.bike_id)
+      .eq('status', 'pending')
+      .neq('id', bookingId)
+
+    if (otherBookings && otherBookings.length > 0) {
+      // 批量取消
+      await supabase
+        .from('bookings')
+        .update({ status: 'cancelled' })
+        .eq('bike_id', booking.bike_id)
+        .eq('status', 'pending')
+        .neq('id', bookingId)
+
+      // 发邮件通知每个被取消的用户
+      const bikeName = booking.bike?.name_en || 'the bike'
+      for (const other of otherBookings) {
+        await resend.emails.send({
+          from: 'CyklaUpp <noreply@cyklaupp.se>',
+          to: other.email,
+          subject: 'Your bike booking — update',
+          html: `
+            <div style="font-family: Inter, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
+              <h2 style="color: #0F2D6B; margin-bottom: 4px;">CyklaUpp</h2>
+              <p style="color: #666; margin-bottom: 24px;">Hi ${other.name},</p>
+
+              <p style="color: #333; line-height: 1.6; margin-bottom: 16px;">
+                Unfortunately, we have to let you know that your booking request for <strong>${bikeName}</strong>
+                (pickup: ${other.pickup_date}) could not be confirmed — the bike has just been rented to another customer.
+              </p>
+
+              <p style="color: #333; line-height: 1.6; margin-bottom: 24px;">
+                We're sorry for the inconvenience. Please visit our website to check if other bikes are available,
+                or contact us and we'll do our best to help you find a suitable alternative.
+              </p>
+
+              <p style="color: #999; font-size: 13px; line-height: 1.6;">
+                Questions? Email us at cyklaupp@outlook.com
+              </p>
+            </div>
+          `,
+        })
+      }
+    }
+  }
+
+  // 发确认邮件给被确认的用户
   const bikeName = booking.bike?.name_en || 'your bike'
   const bikeNumber = booking.bike?.bike_number || ''
   const planLabel = planLabels[booking.plan] || booking.plan
