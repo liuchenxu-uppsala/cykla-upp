@@ -124,6 +124,19 @@ export default function AdminPage() {
     if (booking.bike_id) {
       await supabase.from('bikes').update({ status: 'available' }).eq('id', booking.bike_id)
     }
+    // 发还车确认邮件
+    await fetch('/api/send-return-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'returned',
+        name: booking.name,
+        email: booking.email,
+        bikeName: booking.bike?.name_en || 'your bike',
+        bikeNumber: booking.bike?.bike_number || '',
+        depositAmount: booking.deposit_amount,
+      }),
+    })
     fetchBookings()
     fetchBikes()
   }
@@ -141,6 +154,20 @@ export default function AdminPage() {
   // 押金已退
   async function handleDepositReturned(bookingId: string) {
     await supabase.from('bookings').update({ deposit_returned: true }).eq('id', bookingId)
+    // 找到这条 booking 发押金确认邮件
+    const booking = bookings.find(b => b.id === bookingId)
+    if (booking) {
+      await fetch('/api/send-return-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'deposit',
+          name: booking.name,
+          email: booking.email,
+          depositAmount: booking.deposit_amount,
+        }),
+      })
+    }
     fetchBookings()
   }
 
