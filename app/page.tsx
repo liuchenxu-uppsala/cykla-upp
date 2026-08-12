@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useLang } from '@/lib/lang'
 import { supabase, Bike } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
@@ -121,6 +121,104 @@ function FloatingContact({ onWechat }: { onWechat: () => void }) {
   )
 }
 
+function BikePhotoGallery({ images, alt, isSelected }: { images: string[], alt: string, isSelected: boolean }) {
+  const [currentIdx, setCurrentIdx] = useState(0)
+  const [lightbox, setLightbox] = useState(false)
+  const touchStartX = useRef<number | null>(null)
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return
+    const diff = touchStartX.current - e.changedTouches[0].clientX
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) setCurrentIdx(i => (i + 1) % images.length)
+      else setCurrentIdx(i => (i - 1 + images.length) % images.length)
+    }
+    touchStartX.current = null
+  }
+
+  if (images.length === 0) {
+    return (
+      <div className="aspect-[4/3] bg-gray-50 relative flex items-center justify-center">
+        <svg width="64" height="48" viewBox="0 0 64 48" fill="none" aria-hidden="true">
+          <circle cx="12" cy="36" r="10" stroke="#CBD5E1" strokeWidth="2" fill="none"/>
+          <circle cx="52" cy="36" r="10" stroke="#CBD5E1" strokeWidth="2" fill="none"/>
+          <path d="M12 36 L28 12 L52 36" stroke="#CBD5E1" strokeWidth="2" fill="none"/>
+          <path d="M28 12 L38 24" stroke="#FFD500" strokeWidth="2" strokeLinecap="round"/>
+          <circle cx="28" cy="10" r="4" fill="#CBD5E1"/>
+        </svg>
+        {isSelected && (
+          <div className="absolute top-2 right-2 bg-[#0F2D6B] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">✓</div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="aspect-[4/3] bg-gray-50 relative overflow-hidden">
+        <div
+          className="absolute inset-0"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onClick={(e) => { e.stopPropagation(); setLightbox(true) }}
+        >
+          <Image
+            src={images[currentIdx]}
+            alt={alt}
+            fill
+            className="object-cover cursor-pointer"
+          />
+        </div>
+        {/* Dots only — arrows removed, swipe on mobile */}
+        {images.length > 1 && (
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/30 px-2 py-1 rounded-full">
+            {images.map((_, i) => (
+              <button key={i} onClick={(e) => { e.stopPropagation(); setCurrentIdx(i) }}
+                className={`rounded-full transition-all duration-200 ${i === currentIdx ? 'bg-white w-3 h-2' : 'bg-white/60 w-2 h-2'}`} />
+            ))}
+          </div>
+        )}
+        {/* Photo count badge */}
+        {images.length > 1 && (
+          <div className="absolute top-2 left-2 bg-black/40 text-white text-xs px-2 py-0.5 rounded-full z-10">
+            {currentIdx + 1}/{images.length}
+          </div>
+        )}
+        {isSelected && (
+          <div className="absolute top-2 right-2 bg-[#0F2D6B] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold z-10">✓</div>
+        )}
+      </div>
+
+
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
+          onClick={() => setLightbox(false)}>
+          <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
+            <img src={images[currentIdx]} alt={alt} className="w-full rounded-xl object-contain max-h-[80vh]" />
+            {images.length > 1 && (
+              <>
+                <button onClick={() => setCurrentIdx(i => (i - 1 + images.length) % images.length)}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-9 h-9 flex items-center justify-center text-lg hover:bg-black/70">‹</button>
+                <button onClick={() => setCurrentIdx(i => (i + 1) % images.length)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-9 h-9 flex items-center justify-center text-lg hover:bg-black/70">›</button>
+              </>
+            )}
+            <button onClick={() => setLightbox(false)}
+              className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70">✕</button>
+            <div className="text-center text-white/60 text-sm mt-2">{currentIdx + 1} / {images.length}</div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 function BikeSelector({
   bikes,
   selectedId,
@@ -160,27 +258,12 @@ function BikeSelector({
               ${isAvailable ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}
             `}
           >
-            {/* Photo */}
-            <div className="aspect-[4/3] bg-gray-50 relative">
-              {bike.image_url ? (
-                <Image src={bike.image_url} alt={name} fill className="object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <svg width="64" height="48" viewBox="0 0 64 48" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="36" r="10" stroke="#CBD5E1" strokeWidth="2" fill="none"/>
-                    <circle cx="52" cy="36" r="10" stroke="#CBD5E1" strokeWidth="2" fill="none"/>
-                    <path d="M12 36 L28 12 L52 36" stroke="#CBD5E1" strokeWidth="2" fill="none"/>
-                    <path d="M28 12 L38 24" stroke="#FFD500" strokeWidth="2" strokeLinecap="round"/>
-                    <circle cx="28" cy="10" r="4" fill="#CBD5E1"/>
-                  </svg>
-                </div>
-              )}
-              {isSelected && (
-                <div className="absolute top-2 right-2 bg-[#0F2D6B] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                  ✓
-                </div>
-              )}
-            </div>
+            {/* Photo with gallery */}
+            <BikePhotoGallery
+              images={bike.image_urls && bike.image_urls.length > 0 ? bike.image_urls : bike.image_url ? [bike.image_url] : []}
+              alt={name}
+              isSelected={isSelected}
+            />
 
             {/* Info */}
             <div className="p-4">

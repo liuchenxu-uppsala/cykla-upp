@@ -177,19 +177,49 @@ export default function AdminPage() {
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!uploadTarget || !e.target.files?.[0]) return
+    if (!uploadTarget || !e.target.files || e.target.files.length === 0) return
     setUploading(uploadTarget)
-    const file = e.target.files[0]
-    const ext = file.name.split('.').pop()
-    const path = `bikes/${uploadTarget}.${ext}`
-    const { error } = await supabase.storage.from('bike-photos').upload(path, file, { upsert: true })
-    if (!error) {
-      const { data } = supabase.storage.from('bike-photos').getPublicUrl(path)
-      await supabase.from('bikes').update({ image_url: data.publicUrl }).eq('id', uploadTarget)
+    const bike = bikes.find(b => b.id === uploadTarget)
+    const existingUrls: string[] = (bike?.image_urls && bike.image_urls.length > 0)
+      ? bike.image_urls
+      : (bike?.image_url ? [bike.image_url] : [])
+    const remaining = 5 - existingUrls.length
+    if (remaining <= 0) { alert('Maximum 5 photos allowed.'); setUploading(null); return }
+    const files = Array.from(e.target.files).slice(0, remaining)
+    const newUrls: string[] = []
+    for (const file of files) {
+      const ext = file.name.split('.').pop()
+      const path = `bikes/${uploadTarget}_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+      const { error } = await supabase.storage.from('bike-photos').upload(path, file, { upsert: false })
+      if (!error) {
+        const { data } = supabase.storage.from('bike-photos').getPublicUrl(path)
+        newUrls.push(data.publicUrl)
+      }
+    }
+    if (newUrls.length > 0) {
+      const allUrls = [...existingUrls, ...newUrls]
+      await supabase.from('bikes').update({
+        image_url: allUrls[0],
+        image_urls: allUrls,
+      }).eq('id', uploadTarget)
       fetchBikes()
     }
     setUploading(null)
     e.target.value = ''
+  }
+
+  async function handleDeleteImage(bikeId: string, urlToDelete: string) {
+    const bike = bikes.find(b => b.id === bikeId)
+    if (!bike) return
+    const allUrls = (bike.image_urls && bike.image_urls.length > 0)
+      ? bike.image_urls
+      : (bike.image_url ? [bike.image_url] : [])
+    const newUrls = allUrls.filter(u => u !== urlToDelete)
+    await supabase.from('bikes').update({
+      image_url: newUrls[0] || null,
+      image_urls: newUrls,
+    }).eq('id', bikeId)
+    fetchBikes()
   }
 
   async function addBike() {
@@ -354,44 +384,71 @@ export default function AdminPage() {
             <div className="space-y-3">
               {bikes.map(bike => (
                 <div key={bike.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                  <div className="p-4 flex items-center gap-4">
-                    <div
-                      className="w-20 h-16 bg-gray-50 rounded-lg overflow-hidden shrink-0 cursor-pointer hover:opacity-80"
-                      onClick={() => bike.image_url && setLightboxUrl(bike.image_url)}>
-                      {bike.image_url
-                        ? <img src={bike.image_url} alt={bike.name_en} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">no photo</div>
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-gray-900">{bike.name_en}</p>
-                        {bike.bike_number && (
-                          <span className="text-xs font-mono bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{bike.bike_number}</span>
-                        )}
+                  <div className="p-4">
+                    {/* Top row: info + actions */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-900">{bike.name_en}</p>
+                          {bike.bike_number && (
+                            <span className="text-xs font-mono bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{bike.bike_number}</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400">
+                          {bike.price_month} SEK/month · {bike.price_semester} SEK/semester
+                        </p>
                       </div>
-                      <p className="text-xs text-gray-400">
-                        {bike.price_month} SEK/month · {bike.price_semester} SEK/semester
-                      </p>
+                      <select value={bike.status} onChange={e => updateBikeStatus(bike.id, e.target.value as Bike['status'])}
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none">
+                        <option value="available">Available</option>
+                        <option value="rented">Rented</option>
+                        <option value="maintenance">Maintenance</option>
+                      </select>
+                      <button onClick={() => editingId === bike.id ? setEditingId(null) : startEdit(bike)}
+                        className="text-xs text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 shrink-0">
+                        {editingId === bike.id ? 'Cancel' : 'Edit'}
+                      </button>
+                      <button onClick={() => deleteBike(bike.id)}
+                        className="text-xs text-red-400 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 shrink-0">
+                        Delete
+                      </button>
                     </div>
-                    <select value={bike.status} onChange={e => updateBikeStatus(bike.id, e.target.value as Bike['status'])}
-                      className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none">
-                      <option value="available">Available</option>
-                      <option value="rented">Rented</option>
-                      <option value="maintenance">Maintenance</option>
-                    </select>
-                    <button onClick={() => { setUploadTarget(bike.id); fileRef.current?.click() }}
-                      className="text-xs text-[#0F2D6B] border border-[#0F2D6B]/30 px-3 py-1.5 rounded-lg hover:bg-blue-50 shrink-0">
-                      {uploading === bike.id ? 'Uploading...' : 'Upload photo'}
-                    </button>
-                    <button onClick={() => editingId === bike.id ? setEditingId(null) : startEdit(bike)}
-                      className="text-xs text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 shrink-0">
-                      {editingId === bike.id ? 'Cancel' : 'Edit'}
-                    </button>
-                    <button onClick={() => deleteBike(bike.id)}
-                      className="text-xs text-red-400 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 shrink-0">
-                      Delete
-                    </button>
+                    {/* Photo slots: 5 boxes */}
+                    {(() => {
+                      const imgs = (bike.image_urls && bike.image_urls.length > 0)
+                        ? bike.image_urls
+                        : (bike.image_url ? [bike.image_url] : [])
+                      const slots = Array.from({ length: 5 })
+                      return (
+                        <div className="flex gap-2">
+                          {slots.map((_, idx) => {
+                            const url = imgs[idx]
+                            if (url) {
+                              return (
+                                <div key={idx} className="relative group w-16 h-14 rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                                  <img src={url} alt="" className="w-full h-full object-cover cursor-pointer hover:opacity-80"
+                                    onClick={() => setLightboxUrl(url)} />
+                                  <button
+                                    onClick={() => handleDeleteImage(bike.id, url)}
+                                    className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 text-xs hidden group-hover:flex items-center justify-center leading-none">
+                                    ×
+                                  </button>
+                                </div>
+                              )
+                            } else {
+                              return (
+                                <button key={idx}
+                                  onClick={() => { setUploadTarget(bike.id); fileRef.current?.click() }}
+                                  disabled={uploading === bike.id}
+                                  className="w-16 h-14 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 hover:border-[#0F2D6B] hover:text-[#0F2D6B] transition-colors shrink-0 text-xl disabled:opacity-50">
+                                  {uploading === bike.id && imgs.length === idx ? '...' : '+'}
+                                </button>
+                              )
+                            }
+                          })}
+                        </div>
+                      )
+                    })()}
                   </div>
                   {editingId === bike.id && (
                     <div className="border-t border-gray-100 p-4 bg-gray-50">
@@ -405,7 +462,7 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+            <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} />
           </div>
         )}
 
