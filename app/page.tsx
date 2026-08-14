@@ -339,6 +339,14 @@ export default function Home() {
         </svg>
       </section>
 
+      {/* Beta banner */}
+      <div className="bg-yellow-50 border-y border-yellow-200 px-4 py-2.5 text-center text-sm text-yellow-800">
+        {t.beta_banner}{' '}
+        <a href="mailto:cyklaupp@outlook.com" className="font-medium underline underline-offset-2 hover:text-yellow-900">
+          {t.beta_contact}
+        </a>
+      </div>
+
       <div className="max-w-4xl mx-auto px-4">
 
         {/* Step 1 — Pick a bike */}
