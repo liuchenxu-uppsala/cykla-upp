@@ -67,7 +67,7 @@ const translations = {
     wa_outside: 'Outside hours? Email us at',
     wa_open: 'Open WhatsApp',
     wa_close: 'Close',
-    beta_banner: '🚧 Beta — We are still testing. Found an issue or have feedback?',
+    beta_banner: '🚧 Beta — We are still testing. Found an issue or are interested in renting?',
     beta_contact: 'Email us',
   },
   sv: {
@@ -133,7 +133,7 @@ const translations = {
     wa_outside: 'Utanfor arbetstid? Maila oss pa',
     wa_open: 'Oppna WhatsApp',
     wa_close: 'Stang',
-    beta_banner: '🚧 Beta — Vi testar fortfarande. Hittat ett problem eller har feedback?',
+    beta_banner: '🚧 Beta — Vi testar fortfarande. Hittade du ett problem eller är du intresserad av att hyra?',
     beta_contact: 'Maila oss',
   }
 }
