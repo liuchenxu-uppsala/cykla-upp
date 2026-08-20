@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  const { bookingId, depositAmount } = await req.json()
+  const { bookingId, comment } = await req.json()
   if (!bookingId) {
     return NextResponse.json({ error: 'bookingId is required' }, { status: 400 })
   }
@@ -45,16 +45,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
   }
 
-  // 生成订单号
-  const orderId = generateOrderId()
+  // 生成订单号（若无）
+  const orderId = booking.order_id || generateOrderId()
 
-  // 更新数据库：状态改为 confirmed，记录押金和订单号
+  // 更新数据库：状态改为 confirmed，记录订单号，押金保持为 0 (待线下收取)
   const { error: updateError } = await supabase
     .from('bookings')
     .update({
       status: 'confirmed',
       order_id: orderId,
-      deposit_amount: depositAmount || 0,
+      deposit_amount: booking.deposit_amount || 0,
     })
     .eq('id', bookingId)
 
@@ -77,7 +77,6 @@ export async function POST(req: NextRequest) {
       .neq('id', bookingId)
 
     if (otherBookings && otherBookings.length > 0) {
-      // 批量取消
       await supabase
         .from('bookings')
         .update({ status: 'cancelled' })
@@ -85,7 +84,6 @@ export async function POST(req: NextRequest) {
         .eq('status', 'pending')
         .neq('id', bookingId)
 
-      // 发邮件通知每个被取消的用户
       const bikeName = booking.bike?.name_en || 'the bike'
       for (const other of otherBookings) {
         await resend.emails.send({
@@ -96,17 +94,13 @@ export async function POST(req: NextRequest) {
             <div style="font-family: Inter, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
               <h2 style="color: #0F2D6B; margin-bottom: 4px;">CyklaUpp</h2>
               <p style="color: #666; margin-bottom: 24px;">Hi ${other.name},</p>
-
               <p style="color: #333; line-height: 1.6; margin-bottom: 16px;">
                 Unfortunately, we have to let you know that your booking request for <strong>${bikeName}</strong>
                 (pickup: ${other.pickup_date}) could not be confirmed — the bike has just been rented to another customer.
               </p>
-
               <p style="color: #333; line-height: 1.6; margin-bottom: 24px;">
-                We're sorry for the inconvenience. Please visit our website to check if other bikes are available,
-                or contact us and we'll do our best to help you find a suitable alternative.
+                We're sorry for the inconvenience. Please visit our website to check if other bikes are available.
               </p>
-
               <p style="color: #999; font-size: 13px; line-height: 1.6;">
                 Questions? Email us at cyklaupp@outlook.com
               </p>
@@ -117,7 +111,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 发确认邮件给被确认的用户
+  // 发送给当前被确认用户的邮件
   const bikeName = booking.bike?.name_en || 'your bike'
   const bikeNumber = booking.bike?.bike_number || ''
   const planLabel = planLabels[booking.plan] || booking.plan
@@ -137,6 +131,13 @@ export async function POST(req: NextRequest) {
           <p style="margin: 0; font-size: 24px; font-weight: 700; color: #0F2D6B; letter-spacing: 2px;">${orderId}</p>
         </div>
 
+        ${comment ? `
+        <div style="background: #fff8e6; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <p style="margin: 0 0 4px; font-size: 12px; font-weight: 600; color: #b45309;">Note from CyklaUpp:</p>
+          <p style="margin: 0; font-size: 14px; color: #78350f; white-space: pre-line;">${comment}</p>
+        </div>
+        ` : ''}
+
         <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 24px;">
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 10px 0; color: #888;">Bike</td>
@@ -155,13 +156,13 @@ export async function POST(req: NextRequest) {
             <td style="padding: 10px 0; font-weight: 500;">${locationLabel}</td>
           </tr>
           <tr>
-            <td style="padding: 10px 0; color: #888;">Deposit paid</td>
-            <td style="padding: 10px 0; font-weight: 500;">${depositAmount || 0} SEK</td>
+            <td style="padding: 10px 0; color: #888;">Deposit status</td>
+            <td style="padding: 10px 0; font-weight: 600; color: #d97706;">To be paid at pickup</td>
           </tr>
         </table>
 
         <p style="color: #999; font-size: 13px; line-height: 1.6;">
-          Please keep this order number — you'll need it when returning the bike.<br/>
+          Please keep this order number — you'll need it when picking up and returning the bike.<br/>
           Questions? WeChat or email us at cyklaupp@outlook.com
         </p>
       </div>

@@ -195,6 +195,7 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [bikeId, setBikeId] = useState(preselectedId || (bikes[0]?.id ?? ''))
   const [plan, setPlan] = useState('semester')
   const [date, setDate] = useState('')
@@ -240,11 +241,28 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
 
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault()
-    if (!name || !email || !date) { setError(t.form_error); return }
+
+    // 1. 基础字段非空校验
+    if (!name.trim() || !email.trim() || !date) {
+      setError(t.form_error)
+      return
+    }
+
+    // 2. 手机号必填校验（支持瑞典语/英语双语提示）
+    if (!phone.trim()) {
+      setError(
+        lang === 'sv'
+          ? 'Vänligen fyll i ditt telefonnummer.'
+          : 'Please enter your phone number.'
+      )
+      return
+    }
+
     if (!bikeId) { setError('Please select a bike first.'); return }
     const today = new Date().toISOString().split('T')[0]
     if (date < today) { setError('Please select today or a future date.'); return }
     if (!agreedToTerms) { setError(lang === 'sv' ? 'Du måste godkänna villkoren för att fortsätta.' : 'You must agree to the terms and conditions to continue.'); return }
+
     setError('')
     setSendingOtp(true)
     const res = await fetch('/api/send-otp', {
@@ -277,7 +295,10 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
     setLoading(true)
     const { error: sbError } = await supabase.from('bookings').insert({
       bike_id: bikeId,
-      name, email, plan,
+      name,
+      email,
+      phone: phone.trim(),
+      plan,
       pickup_date: date,
       pickup_location: location,
       notes,
@@ -406,39 +427,77 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
             </div>
           </div>
 
+          {/* 姓名 */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-500">{t.form_name}</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]" />
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
+            />
           </div>
 
+          {/* 邮箱 */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-500">{t.form_email}</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]" />
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
+            />
           </div>
 
+          {/* 手机号（必填，任意国家格式均可） */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-gray-500">
+              {lang === 'sv' ? 'Telefonnummer' : 'Phone Number'}
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="+46 70 123 45 67"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
+            />
+          </div>
+
+          {/* 提取日期 */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-500">{t.form_date}</label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)}
+            <input
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
               min={new Date().toISOString().split('T')[0]}
               lang="en"
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]" />
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
+            />
           </div>
 
-          <div className="flex flex-col gap-1">
+          {/* 提取地点 */}
+          <div className="flex flex-col gap-1 md:col-span-2">
             <label className="text-xs font-medium text-gray-500">{t.form_location}</label>
-            <select value={location} onChange={e => setLocation(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B] bg-white">
+            <select
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B] bg-white"
+            >
               {locationOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
 
+          {/* 备注 */}
           <div className="flex flex-col gap-1 md:col-span-2">
             <label className="text-xs font-medium text-gray-500">{t.form_notes}</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)}
-              placeholder={t.form_notes_ph} rows={3}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B] resize-none" />
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder={t.form_notes_ph}
+              rows={3}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B] resize-none"
+            />
           </div>
         </div>
 

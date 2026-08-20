@@ -16,7 +16,7 @@ function generateBikeNumber(existingNumbers: string[]): string {
   return `CY-${num}`
 }
 
-type BookingWithBike = Booking & { bike?: Bike }
+type BookingWithBike = Booking & { bike?: Bike; phone?: string }
 
 const DEPOSIT_OPTIONS = [300, 500, 700, 1000]
 
@@ -60,6 +60,7 @@ export default function AdminPage() {
       setAuthed(true)
     }
   }, [])
+
   const [bikes, setBikes] = useState<Bike[]>([])
   const [bookings, setBookings] = useState<BookingWithBike[]>([])
   const [tab, setTab] = useState<'bikes' | 'bookings'>('bikes')
@@ -70,11 +71,21 @@ export default function AdminPage() {
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
-  // Confirm 弹框
+  // 1. Confirm 弹框
   const [confirmTarget, setConfirmTarget] = useState<BookingWithBike | null>(null)
+  const [confirmComment, setConfirmComment] = useState('')
+  const [confirming, setConfirming] = useState(false)
+
+  // 2. Deposit 弹框
+  const [depositTarget, setDepositTarget] = useState<BookingWithBike | null>(null)
   const [depositAmount, setDepositAmount] = useState(500)
   const [customDeposit, setCustomDeposit] = useState('')
-  const [confirming, setConfirming] = useState(false)
+  const [savingDeposit, setSavingDeposit] = useState(false)
+
+  // 3. Cancel 弹框
+  const [cancelTarget, setCancelTarget] = useState<BookingWithBike | null>(null)
+  const [cancelComment, setCancelComment] = useState('')
+  const [cancelling, setCancelling] = useState(false)
 
   // Bikes
   const [newBike, setNewBike] = useState({ ...emptyBike })
@@ -98,33 +109,63 @@ export default function AdminPage() {
     if (data) setBookings(data as BookingWithBike[])
   }
 
-  // Confirm 弹框提交
   async function handleConfirm() {
     if (!confirmTarget) return
     setConfirming(true)
-    const deposit = customDeposit ? parseInt(customDeposit) : depositAmount
     const res = await fetch('/api/confirm-booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookingId: confirmTarget.id, depositAmount: deposit }),
+      body: JSON.stringify({ bookingId: confirmTarget.id, comment: confirmComment }),
     })
     setConfirming(false)
     if (res.ok) {
       setConfirmTarget(null)
-      setCustomDeposit('')
-      setDepositAmount(500)
+      setConfirmComment('')
       fetchBookings()
       fetchBikes()
     }
   }
 
-  // 还车
+  async function handleRecordDeposit() {
+    if (!depositTarget) return
+    setSavingDeposit(true)
+    const deposit = customDeposit ? parseInt(customDeposit) : depositAmount
+    const res = await fetch('/api/record-deposit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookingId: depositTarget.id, depositAmount: deposit }),
+    })
+    setSavingDeposit(false)
+    if (res.ok) {
+      setDepositTarget(null)
+      setCustomDeposit('')
+      setDepositAmount(500)
+      fetchBookings()
+    }
+  }
+
+  async function handleCancel() {
+    if (!cancelTarget) return
+    setCancelling(true)
+    const res = await fetch('/api/cancel-booking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookingId: cancelTarget.id, comment: cancelComment }),
+    })
+    setCancelling(false)
+    if (res.ok) {
+      setCancelTarget(null)
+      setCancelComment('')
+      fetchBookings()
+      fetchBikes()
+    }
+  }
+
   async function handleComplete(booking: BookingWithBike) {
     await supabase.from('bookings').update({ status: 'completed' }).eq('id', booking.id)
     if (booking.bike_id) {
       await supabase.from('bikes').update({ status: 'available' }).eq('id', booking.bike_id)
     }
-    // 发还车确认邮件
     await fetch('/api/send-return-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -141,20 +182,8 @@ export default function AdminPage() {
     fetchBikes()
   }
 
-  // 取消
-  async function handleCancel(booking: BookingWithBike) {
-    await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', booking.id)
-    if (booking.bike_id) {
-      await supabase.from('bikes').update({ status: 'available' }).eq('id', booking.bike_id)
-    }
-    fetchBookings()
-    fetchBikes()
-  }
-
-  // 押金已退
   async function handleDepositReturned(bookingId: string) {
     await supabase.from('bookings').update({ deposit_returned: true }).eq('id', bookingId)
-    // 找到这条 booking 发押金确认邮件
     const booking = bookings.find(b => b.id === bookingId)
     if (booking) {
       await fetch('/api/send-return-email', {
@@ -257,8 +286,6 @@ export default function AdminPage() {
     fetchBikes()
   }
 
-
-
   const statusBadge: Record<string, string> = {
     pending:   'bg-yellow-50 text-yellow-700',
     confirmed: 'bg-blue-50 text-blue-700',
@@ -266,14 +293,14 @@ export default function AdminPage() {
     cancelled: 'bg-red-50 text-red-600',
   }
 
-  // 搜索过滤
   const filteredBookings = bookings.filter(b => {
     if (!search) return true
     const q = search.toLowerCase()
     return (
-      b.name.toLowerCase().includes(q) ||
-      b.email.toLowerCase().includes(q) ||
-      (b.order_id?.toLowerCase().includes(q) ?? false)
+      (b.name || '').toLowerCase().includes(q) ||
+      (b.email || '').toLowerCase().includes(q) ||
+      (b.phone || '').toLowerCase().includes(q) ||
+      (b.order_id || '').toLowerCase().includes(q)
     )
   })
 
@@ -303,13 +330,51 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Confirm 弹框 */}
+      {/* 1. Confirm 弹框 */}
       {confirmTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <h3 className="font-semibold text-gray-900 mb-1">Confirm booking</h3>
             <p className="text-sm text-gray-500 mb-4">
               {confirmTarget.name} — {confirmTarget.bike?.name_en}
+            </p>
+
+            <p className="text-xs font-medium text-gray-700 mb-1">Note / Comment to customer (optional)</p>
+            <textarea
+              rows={3}
+              placeholder="e.g. Please bring your ID card. Meet at Flogsta entrance."
+              value={confirmComment}
+              onChange={e => setConfirmComment(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:border-[#0F2D6B] mb-4"
+            />
+
+            <p className="text-xs text-gray-400 mb-4">
+              A confirmation email will be sent to {confirmTarget.email} with deposit status <strong>To be paid at pickup</strong>.
+            </p>
+
+            <div className="flex gap-2">
+              <button onClick={handleConfirm} disabled={confirming}
+                className="flex-1 bg-[#0F2D6B] text-white py-2.5 rounded-lg text-sm font-semibold disabled:opacity-60">
+                {confirming ? 'Confirming...' : 'Confirm & send email'}
+              </button>
+              <button onClick={() => setConfirmTarget(null)}
+                className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Record Deposit 弹框 */}
+      {depositTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-900 mb-1">
+              {depositTarget.deposit_amount > 0 ? 'Edit recorded deposit' : 'Record deposit received'}
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {depositTarget.name} ({depositTarget.order_id || 'Booking'})
             </p>
 
             <p className="text-xs font-medium text-gray-500 mb-2">Deposit collected (SEK)</p>
@@ -334,17 +399,53 @@ export default function AdminPage() {
             />
 
             <p className="text-xs text-gray-400 mb-4">
-              A confirmation email with order number will be sent to {confirmTarget.email}
+              An official deposit receipt email will be sent to {depositTarget.email}.
             </p>
 
             <div className="flex gap-2">
-              <button onClick={handleConfirm} disabled={confirming}
+              <button onClick={handleRecordDeposit} disabled={savingDeposit}
                 className="flex-1 bg-[#0F2D6B] text-white py-2.5 rounded-lg text-sm font-semibold disabled:opacity-60">
-                {confirming ? 'Confirming...' : 'Confirm & send email'}
+                {savingDeposit ? 'Saving...' : 'Save & Send receipt'}
               </button>
-              <button onClick={() => setConfirmTarget(null)}
+              <button onClick={() => setDepositTarget(null)}
                 className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Cancel 弹框 */}
+      {cancelTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-red-600 mb-1">Cancel booking</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {cancelTarget.name} — {cancelTarget.bike?.name_en}
+            </p>
+
+            <p className="text-xs font-medium text-gray-700 mb-1">Reason / Note to customer (optional)</p>
+            <textarea
+              rows={3}
+              placeholder="e.g. Bike requires urgent maintenance / Unable to contact user."
+              value={cancelComment}
+              onChange={e => setCancelComment(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:border-red-500 mb-4"
+            />
+
+            <p className="text-xs text-gray-400 mb-4">
+              A cancellation email with details will be sent to {cancelTarget.email}.
+            </p>
+
+            <div className="flex gap-2">
+              <button onClick={handleCancel} disabled={cancelling}
+                className="flex-1 bg-red-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-60">
+                {cancelling ? 'Cancelling...' : 'Cancel booking & notify'}
+              </button>
+              <button onClick={() => setCancelTarget(null)}
+                className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                Back
               </button>
             </div>
           </div>
@@ -385,7 +486,6 @@ export default function AdminPage() {
               {bikes.map(bike => (
                 <div key={bike.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                   <div className="p-4">
-                    {/* Top row: info + actions */}
                     <div className="flex items-center gap-3 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -413,7 +513,7 @@ export default function AdminPage() {
                         Delete
                       </button>
                     </div>
-                    {/* Photo slots: 5 boxes */}
+
                     {(() => {
                       const imgs = (bike.image_urls && bike.image_urls.length > 0)
                         ? bike.image_urls
@@ -468,10 +568,9 @@ export default function AdminPage() {
 
         {tab === 'bookings' && (
           <div>
-            {/* 搜索框 */}
             <input
               type="text"
-              placeholder="Search by name, email or order number..."
+              placeholder="Search by name, email, phone or order number..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2D6B] mb-4 bg-white"
@@ -483,7 +582,7 @@ export default function AdminPage() {
               )}
               {filteredBookings.map(b => (
                 <div key={b.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                  {/* 概览行 */}
+                  {/* 未展开时的标题行 */}
                   <div className="p-4 flex items-center gap-4 cursor-pointer"
                     onClick={() => setExpandedBooking(expandedBooking === b.id ? null : b.id)}>
                     <div className="w-14 h-12 bg-gray-50 rounded-lg overflow-hidden shrink-0">
@@ -493,11 +592,17 @@ export default function AdminPage() {
                       }
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900">{b.name}
-                        <span className="text-gray-400 font-normal text-sm"> — {b.email}</span>
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {b.order_id && <span className="font-mono mr-2">{b.order_id}</span>}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-gray-900">{b.name}</span>
+                        <span className="text-gray-400 font-normal text-sm">— {b.email}</span>
+                        {b.phone && (
+                          <span className="text-gray-600 font-mono text-xs bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                            {b.phone}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {b.order_id && <span className="font-mono mr-2 text-[#0F2D6B] font-semibold">{b.order_id}</span>}
                         {b.bike?.name_en || 'Unknown'} · {planLabels[b.plan] || b.plan} · {b.pickup_date}
                       </p>
                       <p className="text-xs text-gray-300 mt-0.5">
@@ -545,6 +650,7 @@ export default function AdminPage() {
                             <p className="text-xs text-gray-400 mb-1">Contact</p>
                             <p className="font-medium">{b.name}</p>
                             <p className="text-xs text-gray-400">{b.email}</p>
+                            <p className="text-xs text-gray-600 font-mono mt-0.5">{b.phone || '—'}</p>
                           </div>
                           {b.order_id && (
                             <div>
@@ -552,64 +658,95 @@ export default function AdminPage() {
                               <p className="font-mono font-medium">{b.order_id}</p>
                             </div>
                           )}
-                          {b.deposit_amount > 0 && (
-                            <div>
-                              <p className="text-xs text-gray-400 mb-1">Deposit</p>
-                              <p className="font-medium">{b.deposit_amount} SEK</p>
-                              <p className={"text-xs " + (b.deposit_returned ? 'text-green-600' : 'text-yellow-600')}>
-                                {b.deposit_returned ? '✓ Returned' : '⏳ Not yet returned'}
-                              </p>
-                            </div>
-                          )}
+
+                          {/* 动态精确展示 Supabase 里的 deposit_amount 与 deposit_returned */}
+                          <div>
+                            <p className="text-xs text-gray-400 mb-1">Deposit Status</p>
+                            {b.deposit_amount && b.deposit_amount > 0 ? (
+                              <div>
+                                <p className="font-semibold text-green-700">{b.deposit_amount} SEK (Recorded)</p>
+                                <p className={"text-xs mt-0.5 " + (b.deposit_returned ? 'text-green-600 font-medium' : 'text-amber-600')}>
+                                  {b.deposit_returned ? '✓ Refunded to customer' : '⏳ Deposit currently held'}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-amber-600 font-medium text-xs">0 SEK (Not collected yet)</p>
+                            )}
+                          </div>
+
                           {b.notes && (
                             <div className="col-span-2">
-                              <p className="text-xs text-gray-400 mb-1">Notes</p>
+                              <p className="text-xs text-gray-400 mb-1">User Notes</p>
                               <p className="text-gray-600">{b.notes}</p>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {/* 操作按钮 */}
-                      {b.status === 'pending' && (
-                        <div className="flex gap-2">
-                          <button onClick={() => setConfirmTarget(b)}
-                            className="bg-[#0F2D6B] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#1a3f8f]">
-                            ✓ Confirm booking
-                          </button>
-                          <button onClick={() => handleCancel(b)}
-                            className="bg-white text-red-500 border border-red-200 text-sm px-4 py-2 rounded-lg hover:bg-red-50">
-                            ✕ Cancel
-                          </button>
-                        </div>
-                      )}
+                      {/* 按钮区域 */}
+                      <div className="flex gap-2 flex-wrap items-center pt-2 border-t border-gray-200/60">
 
-                      {b.status === 'confirmed' && (
-                        <div className="flex gap-2 flex-wrap">
-                          <button onClick={() => handleComplete(b)}
-                            className="bg-green-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-green-700">
-                            ✓ Mark as returned — bike available again
-                          </button>
-                          {b.deposit_amount > 0 && !b.deposit_returned && (
-                            <button onClick={() => handleDepositReturned(b.id)}
-                              className="bg-white text-[#0F2D6B] border border-[#0F2D6B]/30 text-sm px-4 py-2 rounded-lg hover:bg-blue-50">
-                              💰 Deposit returned
+                        {/* 1. Pending 状态控制 */}
+                        {b.status === 'pending' && (
+                          <>
+                            <button onClick={() => setConfirmTarget(b)}
+                              className="bg-[#0F2D6B] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#1a3f8f] font-medium">
+                              ✓ Confirm booking
                             </button>
-                          )}
-                        </div>
-                      )}
+                            <button onClick={() => setCancelTarget(b)}
+                              className="bg-white text-red-500 border border-red-200 text-sm px-4 py-2 rounded-lg hover:bg-red-50">
+                              ✕ Cancel
+                            </button>
+                          </>
+                        )}
 
-                      {(b.status === 'completed' || b.status === 'cancelled') && (
-                        <div className="flex items-center gap-3">
-                          <p className="text-xs text-gray-400">This booking is closed.</p>
-                          {b.deposit_amount > 0 && !b.deposit_returned && (
-                            <button onClick={() => handleDepositReturned(b.id)}
-                              className="bg-white text-[#0F2D6B] border border-[#0F2D6B]/30 text-xs px-3 py-1.5 rounded-lg hover:bg-blue-50">
-                              💰 Mark deposit returned
+                        {/* 2. Confirmed 状态控制 */}
+                        {b.status === 'confirmed' && (
+                          <>
+                            {/* 未收押金时才显示“录入押金”按钮 */}
+                            {(!b.deposit_amount || b.deposit_amount === 0) ? (
+                              <button onClick={() => setDepositTarget(b)}
+                                className="bg-amber-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-amber-600 font-medium">
+                                💰 Record deposit received
+                              </button>
+                            ) : (
+                              /* 已收押金后，变更为状态提示按钮，防止重复多点，但保留 Edit 修改选项 */
+                              <div className="flex items-center gap-1 bg-green-50 border border-green-200 rounded-lg px-3 py-1.5 text-xs text-green-800 font-medium">
+                                <span>✓ Deposit paid ({b.deposit_amount} SEK)</span>
+                                <button onClick={() => setDepositTarget(b)} className="text-gray-400 hover:text-gray-600 underline ml-2">
+                                  Edit
+                                </button>
+                              </div>
+                            )}
+
+                            {/* 还车按钮 */}
+                            <button onClick={() => handleComplete(b)}
+                              className="bg-green-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-green-700 font-medium">
+                              ✓ Mark bike as returned
                             </button>
-                          )}
-                        </div>
-                      )}
+
+                            {/* Cancel 按钮在 Confirmed 下仍保留 */}
+                            <button onClick={() => setCancelTarget(b)}
+                              className="bg-white text-red-500 border border-red-200 text-sm px-4 py-2 rounded-lg hover:bg-red-50">
+                              ✕ Cancel
+                            </button>
+                          </>
+                        )}
+
+                        {/* 3. 退还押金按钮逻辑（已收押金且未退还时可点） */}
+                        {b.deposit_amount > 0 && !b.deposit_returned && (
+                          <button onClick={() => handleDepositReturned(b.id)}
+                            className="bg-white text-[#0F2D6B] border border-[#0F2D6B]/30 text-xs px-3 py-2 rounded-lg hover:bg-blue-50">
+                            ↩ Mark deposit refunded to customer
+                          </button>
+                        )}
+
+                        {/* 4. 已终结状态（Completed 或 Cancelled）说明 */}
+                        {(b.status === 'completed' || b.status === 'cancelled') && (
+                          <span className="text-xs text-gray-400">Order closed.</span>
+                        )}
+
+                      </div>
                     </div>
                   )}
                 </div>
