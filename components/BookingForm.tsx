@@ -242,13 +242,11 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault()
 
-    // 1. 基础字段非空校验
     if (!name.trim() || !email.trim() || !date) {
       setError(t.form_error)
       return
     }
 
-    // 2. 手机号必填校验（支持瑞典语/英语双语提示）
     if (!phone.trim()) {
       setError(
         lang === 'sv'
@@ -353,7 +351,7 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
             value={otp}
             onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
             placeholder="000000"
-            className="border border-gray-200 rounded-lg px-4 py-3 text-2xl font-mono text-center tracking-widest focus:outline-none focus:border-[#0F2D6B] w-full"
+            className="border border-gray-200 bg-white text-gray-900 rounded-lg px-4 py-3 text-2xl font-mono text-center tracking-widest focus:outline-none focus:border-[#0F2D6B] w-full"
             autoFocus
           />
         </div>
@@ -434,7 +432,7 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
+              className="border border-gray-200 bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
             />
           </div>
 
@@ -445,11 +443,11 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
+              className="border border-gray-200 bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
             />
           </div>
 
-          {/* 手机号（必填，任意国家格式均可） */}
+          {/* 手机号 */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-500">
               {lang === 'sv' ? 'Telefonnummer' : 'Phone Number'}
@@ -459,7 +457,7 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
               value={phone}
               onChange={e => setPhone(e.target.value)}
               placeholder="+46 70 123 45 67"
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
+              className="border border-gray-200 bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
             />
           </div>
 
@@ -472,7 +470,7 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
               onChange={e => setDate(e.target.value)}
               min={new Date().toISOString().split('T')[0]}
               lang="en"
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
+              className="border border-gray-200 bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
             />
           </div>
 
@@ -482,7 +480,7 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
             <select
               value={location}
               onChange={e => setLocation(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B] bg-white"
+              className="border border-gray-200 bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B]"
             >
               {locationOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -496,7 +494,7 @@ export default function BookingForm({ bikes, preselectedId }: { bikes: Bike[], p
               onChange={e => setNotes(e.target.value)}
               placeholder={t.form_notes_ph}
               rows={3}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B] resize-none"
+              className="border border-gray-200 bg-white text-gray-900 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B] resize-none"
             />
           </div>
         </div>
