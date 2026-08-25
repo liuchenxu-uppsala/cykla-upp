@@ -4,7 +4,52 @@ import { useLang } from '@/lib/lang'
 import { supabase, Bike } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import BookingForm from '@/components/BookingForm'
+import FeedbackModal from '@/components/FeedbackModal' // 引入前面创建的反馈弹窗
 import Image from 'next/image'
+
+// 1. 关于我们 弹窗组件 (About Us Modal)
+function AboutUsModal({ onClose }: { onClose: () => void }) {
+  const { lang } = useLang()
+  const isSv = lang === 'sv'
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl p-6 max-w-md w-full relative shadow-xl flex flex-col gap-4"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <h2 className="text-lg font-bold text-gray-900">
+            {isSv ? 'Om CyklaUpp' : 'About CyklaUpp'}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+        </div>
+
+        <p className="text-sm text-gray-600 leading-relaxed">
+          {isSv
+            ? 'CyklaUpp grundades av fyra studenter från olika ämnesområden vid Uppsala universitet med ett gemensamt mål: att erbjuda prisvärd och pålitlig cykeluthyrning till studenter i Uppsala.'
+            : 'CyklaUpp was created by four Uppsala University students from different academic fields with a shared mission: to provide affordable and reliable bicycle rentals for students in Uppsala.'}
+        </p>
+
+        <p className="text-sm text-gray-600 leading-relaxed">
+          {isSv
+            ? 'Med utgångspunkt i Uppsala vill vi erbjuda högkvalitativ och tillgänglig service till det lokala studentlivet. Med stöd från Uppsalas studenter hoppas vi kunna växa vidare och hjälpa ännu fler i framtiden.'
+            : 'Starting right here in Uppsala, we are committed to offering high-quality, accessible services to our local student community. With the support of Uppsala’s students, we aim to grow further and help even more people along the way.'}
+        </p>
+
+        <button
+          onClick={onClose}
+          className="w-full bg-[#0F2D6B] text-white text-sm font-medium py-2.5 rounded-lg hover:bg-[#1a3f8f] transition-colors mt-2"
+        >
+          {isSv ? 'Stäng' : 'Close'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function WechatModal({ onClose }: { onClose: () => void }) {
   return (
@@ -173,7 +218,6 @@ function BikePhotoGallery({ images, alt, isSelected }: { images: string[], alt: 
             className="object-cover cursor-pointer"
           />
         </div>
-        {/* Dots only — arrows removed, swipe on mobile */}
         {images.length > 1 && (
           <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-black/30 px-2 py-1 rounded-full">
             {images.map((_, i) => (
@@ -182,7 +226,6 @@ function BikePhotoGallery({ images, alt, isSelected }: { images: string[], alt: 
             ))}
           </div>
         )}
-        {/* Photo count badge */}
         {images.length > 1 && (
           <div className="absolute top-2 left-2 bg-black/40 text-white text-xs px-2 py-0.5 rounded-full z-10">
             {currentIdx + 1}/{images.length}
@@ -193,7 +236,6 @@ function BikePhotoGallery({ images, alt, isSelected }: { images: string[], alt: 
         )}
       </div>
 
-      {/* Lightbox */}
       {lightbox && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
           onClick={() => setLightbox(false)}>
@@ -256,14 +298,12 @@ function BikeSelector({
               ${isAvailable ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}
             `}
           >
-            {/* Photo with gallery */}
             <BikePhotoGallery
               images={bike.image_urls && bike.image_urls.length > 0 ? bike.image_urls : bike.image_url ? [bike.image_url] : []}
               alt={name}
               isSelected={isSelected}
             />
 
-            {/* Info */}
             <div className="p-4">
               <div className="flex items-start justify-between gap-2 mb-1">
                 <h3 className="font-semibold text-gray-900">{name}</h3>
@@ -281,10 +321,14 @@ function BikeSelector({
 }
 
 export default function Home() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [bikes, setBikes] = useState<Bike[]>([])
   const [selectedBikeId, setSelectedBikeId] = useState('')
   const [showWechat, setShowWechat] = useState(false)
+
+  // 控制两个新增 Modal 的状态
+  const [showAboutUs, setShowAboutUs] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
 
   useEffect(() => {
     supabase.from('bikes').select('*').order('created_at').then(({ data }) => {
@@ -385,13 +429,35 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="border-t border-gray-100 py-6 text-center text-xs text-gray-400">
-          © 2025 CyklaUpp · Uppsala · cyklaupp@outlook.com
+        {/* 替换后的新 Footer（集成 About Us 和 Feedback 按钮） */}
+        <footer className="border-t border-gray-100 py-8 text-center text-xs text-gray-400 flex flex-col items-center gap-3">
+          <div className="flex items-center gap-4 text-gray-600 font-medium">
+            <button
+              onClick={() => setShowAboutUs(true)}
+              className="hover:text-[#0F2D6B] hover:underline transition-colors"
+            >
+              {lang === 'sv' ? 'Om oss' : 'About Us'}
+            </button>
+            <span>·</span>
+            <button
+              onClick={() => setShowFeedback(true)}
+              className="hover:text-[#0F2D6B] hover:underline transition-colors flex items-center gap-1"
+            >
+              <span>💬</span>
+              <span>{lang === 'sv' ? 'Lämna återkoppling' : 'Feedback'}</span>
+            </button>
+          </div>
+          <div>
+            © {new Date().getFullYear()} CyklaUpp · Uppsala · <a href="mailto:cyklaupp@outlook.com" className="hover:underline">cyklaupp@outlook.com</a>
+          </div>
         </footer>
       </div>
 
+      {/* 弹窗部分 */}
+      {showAboutUs && <AboutUsModal onClose={() => setShowAboutUs(false)} />}
+      <FeedbackModal isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
       {showWechat && <WechatModal onClose={() => setShowWechat(false)} />}
+
       <FloatingContact onWechat={() => setShowWechat(true)} />
     </div>
   )
