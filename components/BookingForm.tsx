@@ -19,7 +19,7 @@ Semester rental: Five (5) calendar months from the pickup date.
 
 3. PRICING AND PAYMENT
 Monthly rental: 150 SEK per month.
-Semester rental: 500 SEK per semester (5 months).
+Semester rental: 600 SEK per semester (5 months).
 Payment is due at pickup and can be made via Swish or cash.
 
 4. DEPOSIT
@@ -79,7 +79,7 @@ Terminshyra: Fem (5) kalendermånader från upphämtningsdatumet.
 
 3. PRISER OCH BETALNING
 Månadshyra: 150 SEK per månad.
-Terminshyra: 500 SEK per termin (5 månader).
+Terminshyra: 600 SEK per termin (5 månader).
 Betalning sker vid upphämtning och kan göras via Swish eller kontant.
 
 4. DEPOSITION
