@@ -38,3 +38,21 @@ export type Booking = {
   deposit_returned: boolean
   created_at: string
 }
+
+export type BikeOffer = {
+  id: string
+  name: string
+  email: string
+  phone: string
+  location: string
+  price: number
+  brand_model: string | null
+  condition: 'like_new' | 'good' | 'fair' | 'needs_repair'
+  available_date: string
+  payment_method: 'swish' | 'card' | 'revolut' | 'cash' | 'any'
+  notes: string
+  status: 'new' | 'confirmed' | 'completed' | 'declined'
+  final_price: number | null
+  final_payment_method: 'swish' | 'card' | 'revolut' | 'cash' | null
+  created_at: string
+}

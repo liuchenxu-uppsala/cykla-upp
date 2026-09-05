@@ -1,7 +1,7 @@
 'use client'
 export const dynamic = 'force-dynamic'
 import { useEffect, useState, useRef } from 'react'
-import { supabase, Bike, Booking } from '@/lib/supabase'
+import { supabase, Bike, Booking, BikeOffer } from '@/lib/supabase'
 
 const ADMIN_PASS = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123'
 
@@ -63,7 +63,7 @@ export default function AdminPage() {
 
   const [bikes, setBikes] = useState<Bike[]>([])
   const [bookings, setBookings] = useState<BookingWithBike[]>([])
-  const [tab, setTab] = useState<'bikes' | 'bookings'>('bikes')
+  const [tab, setTab] = useState<'bikes' | 'bookings' | 'offers'>('bikes')
   const [uploading, setUploading] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploadTarget, setUploadTarget] = useState<string | null>(null)
@@ -87,6 +87,28 @@ export default function AdminPage() {
   const [cancelComment, setCancelComment] = useState('')
   const [cancelling, setCancelling] = useState(false)
 
+  // Sell offers
+  const [offers, setOffers] = useState<BikeOffer[]>([])
+  const [expandedOffer, setExpandedOffer] = useState<string | null>(null)
+  const [offerSearch, setOfferSearch] = useState('')
+
+  // 4. Confirm offer 弹框
+  const [confirmOfferTarget, setConfirmOfferTarget] = useState<BikeOffer | null>(null)
+  const [confirmOfferComment, setConfirmOfferComment] = useState('')
+  const [confirmingOffer, setConfirmingOffer] = useState(false)
+
+  // 5. Complete offer 弹框
+  const [completeOfferTarget, setCompleteOfferTarget] = useState<BikeOffer | null>(null)
+  const [finalPrice, setFinalPrice] = useState('')
+  const [finalPaymentMethod, setFinalPaymentMethod] = useState('')
+  const [completeOfferComment, setCompleteOfferComment] = useState('')
+  const [completingOffer, setCompletingOffer] = useState(false)
+
+  // 6. Decline offer 弹框
+  const [declineOfferTarget, setDeclineOfferTarget] = useState<BikeOffer | null>(null)
+  const [declineOfferComment, setDeclineOfferComment] = useState('')
+  const [decliningOffer, setDecliningOffer] = useState(false)
+
   // Bikes
   const [newBike, setNewBike] = useState({ ...emptyBike })
   const [adding, setAdding] = useState(false)
@@ -94,7 +116,7 @@ export default function AdminPage() {
   const [editBike, setEditBike] = useState({ ...emptyBike })
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => { if (!authed) return; fetchBikes(); fetchBookings() }, [authed])
+  useEffect(() => { if (!authed) return; fetchBikes(); fetchBookings(); fetchOffers() }, [authed])
 
   async function fetchBikes() {
     const { data } = await supabase.from('bikes').select('*').order('created_at')
@@ -107,6 +129,14 @@ export default function AdminPage() {
       .select('*, bike:bikes(*)')
       .order('created_at', { ascending: false })
     if (data) setBookings(data as BookingWithBike[])
+  }
+
+  async function fetchOffers() {
+    const { data } = await supabase
+      .from('bike_offers')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (data) setOffers(data)
   }
 
   async function handleConfirm() {
@@ -198,6 +228,67 @@ export default function AdminPage() {
       })
     }
     fetchBookings()
+  }
+
+  async function handleConfirmOffer() {
+    if (!confirmOfferTarget) return
+    setConfirmingOffer(true)
+    const res = await fetch('/api/confirm-sell-offer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ offerId: confirmOfferTarget.id, comment: confirmOfferComment }),
+    })
+    setConfirmingOffer(false)
+    if (res.ok) {
+      setConfirmOfferTarget(null)
+      setConfirmOfferComment('')
+      fetchOffers()
+    }
+  }
+
+  function openCompleteOffer(offer: BikeOffer) {
+    setCompleteOfferTarget(offer)
+    setFinalPrice(String(offer.price))
+    setFinalPaymentMethod(offer.payment_method === 'any' ? '' : offer.payment_method)
+  }
+
+  async function handleCompleteOffer() {
+    if (!completeOfferTarget || !finalPaymentMethod || !finalPrice) return
+    setCompletingOffer(true)
+    const res = await fetch('/api/complete-sell-offer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        offerId: completeOfferTarget.id,
+        finalPrice,
+        finalPaymentMethod,
+        comment: completeOfferComment,
+      }),
+    })
+    setCompletingOffer(false)
+    if (res.ok) {
+      setCompleteOfferTarget(null)
+      setFinalPrice('')
+      setFinalPaymentMethod('')
+      setCompleteOfferComment('')
+      fetchOffers()
+    }
+  }
+
+  async function handleDeclineOffer() {
+    if (!declineOfferTarget) return
+    setDecliningOffer(true)
+    const res = await fetch('/api/decline-sell-offer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ offerId: declineOfferTarget.id, comment: declineOfferComment }),
+    })
+    setDecliningOffer(false)
+    if (res.ok) {
+      setDeclineOfferTarget(null)
+      setDeclineOfferComment('')
+      fetchOffers()
+    }
   }
 
   async function updateBikeStatus(bikeId: string, status: Bike['status']) {
@@ -292,6 +383,39 @@ export default function AdminPage() {
     completed: 'bg-green-50 text-green-700',
     cancelled: 'bg-red-50 text-red-600',
   }
+
+  const offerConditionLabels: Record<string, string> = {
+    like_new: 'Like new',
+    good: 'Good',
+    fair: 'Fair',
+    needs_repair: 'Needs repair',
+  }
+
+  const offerPaymentLabels: Record<string, string> = {
+    swish: 'Swish',
+    card: 'Card',
+    revolut: 'Revolut',
+    cash: 'Cash',
+    any: 'Any (no preference)',
+  }
+
+  const offerStatusBadge: Record<string, string> = {
+    new:       'bg-yellow-50 text-yellow-700',
+    confirmed: 'bg-blue-50 text-blue-700',
+    completed: 'bg-green-50 text-green-700',
+    declined:  'bg-red-50 text-red-600',
+  }
+
+  const filteredOffers = offers.filter(o => {
+    if (!offerSearch) return true
+    const q = offerSearch.toLowerCase()
+    return (
+      (o.name || '').toLowerCase().includes(q) ||
+      (o.email || '').toLowerCase().includes(q) ||
+      (o.phone || '').toLowerCase().includes(q) ||
+      (o.brand_model || '').toLowerCase().includes(q)
+    )
+  })
 
   const filteredBookings = bookings.filter(b => {
     if (!search) return true
@@ -452,18 +576,153 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* 4. Confirm offer 弹框 */}
+      {confirmOfferTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-900 mb-1">Confirm sell offer</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {confirmOfferTarget.name} — {confirmOfferTarget.price} SEK
+            </p>
+
+            <p className="text-xs font-medium text-gray-700 mb-1">Note to seller (optional)</p>
+            <textarea
+              rows={3}
+              placeholder="e.g. We'll come by Flogsta around 3pm on your chosen date."
+              value={confirmOfferComment}
+              onChange={e => setConfirmOfferComment(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:border-[#0F2D6B] mb-4"
+            />
+
+            <p className="text-xs text-gray-400 mb-4">
+              An email will be sent to {confirmOfferTarget.email} letting them know we'd like to buy the bike.
+            </p>
+
+            <div className="flex gap-2">
+              <button onClick={handleConfirmOffer} disabled={confirmingOffer}
+                className="flex-1 bg-[#0F2D6B] text-white py-2.5 rounded-lg text-sm font-semibold disabled:opacity-60">
+                {confirmingOffer ? 'Confirming...' : 'Confirm & send email'}
+              </button>
+              <button onClick={() => setConfirmOfferTarget(null)}
+                className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Complete offer 弹框 */}
+      {completeOfferTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-900 mb-1">Mark as purchased</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {completeOfferTarget.name} — asked {completeOfferTarget.price} SEK
+            </p>
+
+            <p className="text-xs font-medium text-gray-500 mb-1">Amount actually paid (SEK)</p>
+            <input
+              type="number"
+              min={0}
+              value={finalPrice}
+              onChange={e => setFinalPrice(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B] mb-3"
+            />
+
+            <p className="text-xs font-medium text-gray-500 mb-1">Payment method used</p>
+            <select
+              value={finalPaymentMethod}
+              onChange={e => setFinalPaymentMethod(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0F2D6B] mb-3 bg-white"
+            >
+              <option value="" disabled>Select a method</option>
+              <option value="swish">Swish</option>
+              <option value="card">Card</option>
+              <option value="revolut">Revolut</option>
+              <option value="cash">Cash</option>
+            </select>
+
+            <p className="text-xs font-medium text-gray-700 mb-1">Note to seller (optional)</p>
+            <textarea
+              rows={2}
+              placeholder="e.g. Thanks again, enjoy your day!"
+              value={completeOfferComment}
+              onChange={e => setCompleteOfferComment(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:border-[#0F2D6B] mb-4"
+            />
+
+            <p className="text-xs text-gray-400 mb-4">
+              A confirmation email will be sent to {completeOfferTarget.email}.
+            </p>
+
+            <div className="flex gap-2">
+              <button onClick={handleCompleteOffer} disabled={completingOffer || !finalPaymentMethod || !finalPrice}
+                className="flex-1 bg-green-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-60">
+                {completingOffer ? 'Saving...' : 'Confirm purchase & send email'}
+              </button>
+              <button onClick={() => setCompleteOfferTarget(null)}
+                className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Decline offer 弹框 */}
+      {declineOfferTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-red-600 mb-1">Decline sell offer</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {declineOfferTarget.name} — {declineOfferTarget.price} SEK
+            </p>
+
+            <p className="text-xs font-medium text-gray-700 mb-1">Reason / note to seller (optional)</p>
+            <textarea
+              rows={3}
+              placeholder="e.g. Bike condition didn't match the description."
+              value={declineOfferComment}
+              onChange={e => setDeclineOfferComment(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:border-red-500 mb-4"
+            />
+
+            <p className="text-xs text-gray-400 mb-4">
+              A decline email will be sent to {declineOfferTarget.email}.
+            </p>
+
+            <div className="flex gap-2">
+              <button onClick={handleDeclineOffer} disabled={decliningOffer}
+                className="flex-1 bg-red-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-60">
+                {decliningOffer ? 'Declining...' : 'Decline & notify'}
+              </button>
+              <button onClick={() => setDeclineOfferTarget(null)}
+                className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-xl font-semibold text-[#0F2D6B]">CyklaUpp Admin</h1>
           <div className="flex gap-2">
-            {(['bikes','bookings'] as const).map(t2 => (
+            {(['bikes','bookings','offers'] as const).map(t2 => (
               <button key={t2} onClick={() => setTab(t2)}
                 className={"px-4 py-1.5 rounded-lg text-sm font-medium transition-colors " +
                   (tab === t2 ? 'bg-[#0F2D6B] text-white' : 'bg-white border border-gray-200 text-gray-600')}>
-                {t2.charAt(0).toUpperCase() + t2.slice(1)}
+                {t2 === 'offers' ? 'Sell offers' : t2.charAt(0).toUpperCase() + t2.slice(1)}
                 {t2 === 'bookings' && bookings.filter(b => b.status === 'pending').length > 0 && (
                   <span className="ml-1.5 bg-yellow-400 text-[#0F2D6B] text-xs font-bold rounded-full px-1.5">
                     {bookings.filter(b => b.status === 'pending').length}
+                  </span>
+                )}
+                {t2 === 'offers' && offers.filter(o => o.status === 'new').length > 0 && (
+                  <span className="ml-1.5 bg-yellow-400 text-[#0F2D6B] text-xs font-bold rounded-full px-1.5">
+                    {offers.filter(o => o.status === 'new').length}
                   </span>
                 )}
               </button>
@@ -746,6 +1005,136 @@ export default function AdminPage() {
                           <span className="text-xs text-gray-400">Order closed.</span>
                         )}
 
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'offers' && (
+          <div>
+            <input
+              type="text"
+              placeholder="Search by name, email, phone or brand/model..."
+              value={offerSearch}
+              onChange={e => setOfferSearch(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0F2D6B] mb-4 bg-white"
+            />
+
+            <div className="space-y-3">
+              {filteredOffers.length === 0 && (
+                <p className="text-gray-400 text-sm">{offerSearch ? 'No results found.' : 'No sell offers yet.'}</p>
+              )}
+              {filteredOffers.map(o => (
+                <div key={o.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                  {/* 未展开时的标题行 */}
+                  <div className="p-4 flex items-center gap-4 cursor-pointer"
+                    onClick={() => setExpandedOffer(expandedOffer === o.id ? null : o.id)}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-gray-900">{o.name}</span>
+                        <span className="text-gray-400 font-normal text-sm">— {o.email}</span>
+                        <span className="text-gray-600 font-mono text-xs bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                          {o.phone}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        <span className="font-semibold text-[#0F2D6B] mr-2">{o.price} SEK</span>
+                        {o.brand_model || 'Brand/model not given'} · {offerConditionLabels[o.condition] || o.condition} · {o.location}
+                      </p>
+                      <p className="text-xs text-gray-300 mt-0.5">
+                        Submitted: {new Date(o.created_at).toLocaleString('en-SE', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                    </div>
+                    <span className={"text-xs px-2 py-1 rounded-full font-medium " + (offerStatusBadge[o.status] || '')}>
+                      {o.status}
+                    </span>
+                    <span className="text-gray-300 text-sm">{expandedOffer === o.id ? '▲' : '▼'}</span>
+                  </div>
+
+                  {/* 展开详情 */}
+                  {expandedOffer === o.id && (
+                    <div className="border-t border-gray-100 p-4 bg-gray-50">
+                      <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1">Asking price</p>
+                          <p className="font-semibold text-[#0F2D6B]">{o.price} SEK</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1">Condition</p>
+                          <p className="font-medium">{offerConditionLabels[o.condition] || o.condition}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1">Brand / model</p>
+                          <p className="font-medium">{o.brand_model || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1">Drop-off location</p>
+                          <p className="font-medium">{o.location}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1">Earliest viewing date</p>
+                          <p className="font-medium">{o.available_date}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1">Preferred payment</p>
+                          <p className="font-medium">{offerPaymentLabels[o.payment_method] || o.payment_method}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400 mb-1">Contact</p>
+                          <p className="font-medium">{o.name}</p>
+                          <p className="text-xs text-gray-400">{o.email}</p>
+                          <p className="text-xs text-gray-600 font-mono mt-0.5">{o.phone}</p>
+                        </div>
+                        {o.status === 'completed' && (
+                          <div>
+                            <p className="text-xs text-gray-400 mb-1">Final payment</p>
+                            <p className="font-semibold text-green-700">{o.final_price} SEK</p>
+                            <p className="text-xs text-gray-500">via {offerPaymentLabels[o.final_payment_method || ''] || o.final_payment_method}</p>
+                          </div>
+                        )}
+                        {o.notes && (
+                          <div className="col-span-2">
+                            <p className="text-xs text-gray-400 mb-1">Seller notes</p>
+                            <p className="text-gray-600">{o.notes}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 按钮区域 */}
+                      <div className="flex gap-2 flex-wrap items-center pt-2 border-t border-gray-200/60">
+                        {o.status === 'new' && (
+                          <>
+                            <button onClick={() => setConfirmOfferTarget(o)}
+                              className="bg-[#0F2D6B] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#1a3f8f] font-medium">
+                              ✓ Confirm
+                            </button>
+                            <button onClick={() => setDeclineOfferTarget(o)}
+                              className="bg-white text-red-500 border border-red-200 text-sm px-4 py-2 rounded-lg hover:bg-red-50">
+                              ✕ Decline
+                            </button>
+                          </>
+                        )}
+
+                        {o.status === 'confirmed' && (
+                          <>
+                            <button onClick={() => openCompleteOffer(o)}
+                              className="bg-green-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-green-700 font-medium">
+                              ✓ Mark as purchased
+                            </button>
+                            <button onClick={() => setDeclineOfferTarget(o)}
+                              className="bg-white text-red-500 border border-red-200 text-sm px-4 py-2 rounded-lg hover:bg-red-50">
+                              ✕ Decline
+                            </button>
+                          </>
+                        )}
+
+                        {(o.status === 'completed' || o.status === 'declined') && (
+                          <span className="text-xs text-gray-400">Offer closed.</span>
+                        )}
                       </div>
                     </div>
                   )}
