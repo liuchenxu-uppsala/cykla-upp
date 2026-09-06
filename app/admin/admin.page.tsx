@@ -296,8 +296,8 @@ export default function AdminPage() {
     fetchBikes()
   }
 
-  // 上传前在浏览器里压缩：缩放到最大宽度1200px + 转成JPEG质量70%，避免存原图拖慢加载
-  async function compressImage(file: File, maxWidth = 1200, quality = 0.7): Promise<Blob> {
+  // 上传前在浏览器里压缩：缩放到最大宽度1600px + 转成JPEG质量80%，避免存原图拖慢加载
+  async function compressImage(file: File, maxWidth = 1600, quality = 0.8): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const img = new window.Image()
       const objectUrl = URL.createObjectURL(file)
