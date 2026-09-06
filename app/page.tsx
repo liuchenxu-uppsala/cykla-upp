@@ -1,11 +1,11 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useLang } from '@/lib/lang'
 import { supabase, Bike } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import BookingForm from '@/components/BookingForm'
 import FeedbackModal from '@/components/FeedbackModal' // 引入前面创建的反馈弹窗
-import Image from 'next/image'
 
 // 1. 关于我们 弹窗组件 (About Us Modal)
 function AboutUsModal({ onClose }: { onClose: () => void }) {
@@ -211,11 +211,12 @@ function BikePhotoGallery({ images, alt, isSelected }: { images: string[], alt: 
           onTouchEnd={handleTouchEnd}
           onClick={(e) => { e.stopPropagation(); setLightbox(true) }}
         >
-          <Image
+          <img
             src={images[currentIdx]}
             alt={alt}
-            fill
-            className="object-cover cursor-pointer"
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover cursor-pointer"
           />
         </div>
         {images.length > 1 && (
@@ -236,7 +237,7 @@ function BikePhotoGallery({ images, alt, isSelected }: { images: string[], alt: 
         )}
       </div>
 
-      {lightbox && (
+      {lightbox && createPortal(
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
           onClick={() => setLightbox(false)}>
           <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
@@ -253,7 +254,8 @@ function BikePhotoGallery({ images, alt, isSelected }: { images: string[], alt: 
               className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/70">✕</button>
             <div className="text-center text-white/60 text-sm mt-2">{currentIdx + 1} / {images.length}</div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

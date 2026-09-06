@@ -5,7 +5,6 @@ import { useLang } from '@/lib/lang'
 import { supabase, Bike } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import BookingForm from '@/components/BookingForm'
-import Image from 'next/image'
 import Link from 'next/link'
 
 export default function BikeDetail() {
@@ -55,7 +54,13 @@ export default function BikeDetail() {
           {/* Photo */}
           <div className="aspect-[4/3] bg-gray-50 rounded-2xl overflow-hidden relative">
             {bike.image_url ? (
-              <Image src={bike.image_url} alt={name} fill className="object-cover" />
+              <img
+                src={bike.image_url}
+                alt={name}
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <svg width="96" height="72" viewBox="0 0 64 48" fill="none" aria-hidden="true">

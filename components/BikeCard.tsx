@@ -2,7 +2,6 @@
 import { Bike } from '@/lib/supabase'
 import { useLang } from '@/lib/lang'
 import Link from 'next/link'
-import Image from 'next/image'
 
 export default function BikeCard({ bike }: { bike: Bike }) {
   const { t, lang } = useLang()
@@ -26,7 +25,13 @@ export default function BikeCard({ bike }: { bike: Bike }) {
     <div className="border border-gray-100 rounded-xl overflow-hidden bg-white hover:border-gray-300 transition-colors">
       <div className="aspect-[4/3] bg-gray-50 relative">
         {bike.image_url ? (
-          <Image src={bike.image_url} alt={name} fill className="object-cover" />
+          <img
+            src={bike.image_url}
+            alt={name}
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <svg width="64" height="48" viewBox="0 0 64 48" fill="none" aria-hidden="true">
