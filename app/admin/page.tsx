@@ -87,6 +87,13 @@ export default function AdminPage() {
   const [cancelComment, setCancelComment] = useState('')
   const [cancelling, setCancelling] = useState(false)
 
+  // 3b. Notify about new bikes 弹框（针对 cancelled / completed 的订单）
+  const DEFAULT_NOTIFY_MESSAGE_CANCELLED = "We know your last booking with us didn't work out, but we now have new bikes available! Come take a look and find one that suits you."
+  const DEFAULT_NOTIFY_MESSAGE_COMPLETED = "Thanks again for renting with us! We've got new bikes in stock now — come check them out if you ever need one again."
+  const [notifyTarget, setNotifyTarget] = useState<BookingWithBike | null>(null)
+  const [notifyComment, setNotifyComment] = useState(DEFAULT_NOTIFY_MESSAGE_CANCELLED)
+  const [notifying, setNotifying] = useState(false)
+
   // Sell offers
   const [offers, setOffers] = useState<BikeOffer[]>([])
   const [expandedOffer, setExpandedOffer] = useState<string | null>(null)
@@ -188,6 +195,22 @@ export default function AdminPage() {
       setCancelComment('')
       fetchBookings()
       fetchBikes()
+    }
+  }
+
+  async function handleNotifyNewBikes() {
+    if (!notifyTarget) return
+    setNotifying(true)
+    const res = await fetch('/api/notify-new-bikes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookingId: notifyTarget.id, comment: notifyComment }),
+    })
+    setNotifying(false)
+    if (res.ok) {
+      setNotifyTarget(null)
+      setNotifyComment(DEFAULT_NOTIFY_MESSAGE_CANCELLED)
+      fetchBookings()
     }
   }
 
@@ -605,6 +628,48 @@ export default function AdminPage() {
                 {cancelling ? 'Cancelling...' : 'Cancel booking & notify'}
               </button>
               <button onClick={() => setCancelTarget(null)}
+                className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3b. Notify about new bikes 弹框 */}
+      {notifyTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-900 mb-1">Notify about new bikes</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {notifyTarget.name} — {notifyTarget.email}
+            </p>
+
+            {notifyTarget.notified_new_bikes_count > 0 && (
+              <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-4">
+                ⚠ Already notified {notifyTarget.notified_new_bikes_count}x
+                {notifyTarget.notified_new_bikes_at && ` (last on ${new Date(notifyTarget.notified_new_bikes_at).toLocaleDateString('en-SE', { dateStyle: 'medium' })})`}
+              </p>
+            )}
+
+            <p className="text-xs font-medium text-gray-700 mb-1">Message (editable)</p>
+            <textarea
+              rows={4}
+              value={notifyComment}
+              onChange={e => setNotifyComment(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none focus:border-[#0F2D6B] mb-4"
+            />
+
+            <p className="text-xs text-gray-400 mb-4">
+              An email with a link to the site will be sent to {notifyTarget.email}.
+            </p>
+
+            <div className="flex gap-2">
+              <button onClick={handleNotifyNewBikes} disabled={notifying || !notifyComment.trim()}
+                className="flex-1 bg-[#0F2D6B] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#1a3f8f] disabled:opacity-60">
+                {notifying ? 'Sending...' : 'Send email'}
+              </button>
+              <button onClick={() => setNotifyTarget(null)}
                 className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
                 Back
               </button>
@@ -1037,9 +1102,27 @@ export default function AdminPage() {
                           </button>
                         )}
 
-                        {/* 4. 已终结状态（Completed 或 Cancelled）说明 */}
-                        {(b.status === 'completed' || b.status === 'cancelled') && (
-                          <span className="text-xs text-gray-400">Order closed.</span>
+                        {/* 4. Cancelled / Completed：发"新车上架"通知邮件 */}
+                        {(b.status === 'cancelled' || b.status === 'completed') && (
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {b.notified_new_bikes_count > 0 && (
+                              <span className="text-xs text-green-600">
+                                ✓ Notified {b.notified_new_bikes_count}x
+                                {b.notified_new_bikes_at && ` · last ${new Date(b.notified_new_bikes_at).toLocaleDateString('en-SE', { dateStyle: 'medium' })}`}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => {
+                                setNotifyTarget(b)
+                                setNotifyComment(b.status === 'completed' ? DEFAULT_NOTIFY_MESSAGE_COMPLETED : DEFAULT_NOTIFY_MESSAGE_CANCELLED)
+                              }}
+                              className={b.notified_new_bikes_count > 0
+                                ? "text-xs text-gray-400 underline hover:text-gray-600"
+                                : "bg-white text-[#0F2D6B] border border-[#0F2D6B]/30 text-xs px-3 py-2 rounded-lg hover:bg-blue-50"}
+                            >
+                              {b.notified_new_bikes_count > 0 ? 'Send again' : '📢 Notify about new bikes'}
+                            </button>
+                          </div>
                         )}
 
                       </div>

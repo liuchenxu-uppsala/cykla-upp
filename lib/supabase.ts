@@ -36,6 +36,8 @@ export type Booking = {
   order_id: string | null
   deposit_amount: number
   deposit_returned: boolean
+  notified_new_bikes_count: number
+  notified_new_bikes_at: string | null
   created_at: string
 }
 
