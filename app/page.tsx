@@ -335,8 +335,13 @@ export default function Home() {
   useEffect(() => {
     supabase.from('bikes').select('*').order('created_at').then(({ data }) => {
       if (data && data.length > 0) {
-        setBikes(data)
-        const first = data.find(b => b.status === 'available')
+        // 排序优先级：available（可租）> rented（已租出，快要空出来）> maintenance（维修中，暂时最不可用）
+        const sorted = [...data].sort((a, b) => {
+          const rank = (s: string) => (s === 'available' ? 0 : s === 'rented' ? 1 : 2)
+          return rank(a.status) - rank(b.status)
+        })
+        setBikes(sorted)
+        const first = sorted.find(b => b.status === 'available')
         if (first) setSelectedBikeId(first.id)
       }
     })
